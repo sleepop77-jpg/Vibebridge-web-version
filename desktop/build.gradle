@@ -21,11 +21,15 @@ javafx {
     modules = ['javafx.controls', 'javafx.graphics', 'javafx.web']
 }
 
-dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'org.json:json:20240303'
-}
-
 application {
     mainClass = 'vbdesk.Main'
+}
+
+// Produces a native Windows installer (.exe) via jpackage.
+// On Windows runners this creates desktop/build/jpackage/VibeBridge-1.0.0.exe
+run {
+    jvmArgs = [
+        '--add-opens', 'javafx.web/javafx.scene.web=ALL-UNNAMED',
+        '--add-opens', 'javafx.web/com.sun.webkit=ALL-UNNAMED'
+    ]
 }
