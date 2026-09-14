@@ -171,6 +171,17 @@ header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:
 @keyframes shoot{from{opacity:1;translate:0 0}to{opacity:0;translate:42vw 16vh}}
 .msg{content-visibility:auto;contain-intrinsic-size:120px}
 .bunnywrap::before{content:"";position:absolute;inset:-26px;background:radial-gradient(closest-side,rgba(120,60,180,.35),transparent 70%);z-index:-1}
+:root{--side:rgba(4,2,7,.92);--card:rgba(14,7,22,.92);--bubble:rgba(20,10,32,.6);--code:#0e0616}
+#sb{background:rgba(4,2,7,.92)}
+header{background:rgba(4,2,7,.8)}
+#composer{background:rgba(6,3,10,.9)}
+.mini{background:rgba(14,7,22,.6)}
+.sbhead span{color:#fff}
+.wordmark{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#fff}
+.wordmark span{color:#fff}
+.green,.sendbtn{background-image:radial-gradient(1px 1px at 15% 25%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 45% 65%,rgba(255,255,255,.95) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 70% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 85% 70%,rgba(255,255,255,.85) 50%,transparent 51%),radial-gradient(1px 1px at 25% 80%,rgba(255,255,255,.9) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 60% 15%,rgba(255,255,255,.8) 50%,transparent 51%),radial-gradient(1px 1px at 90% 20%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 8% 60%,rgba(255,255,255,.9) 50%,transparent 51%),linear-gradient(135deg,#1c0c2c,#12061c);border-color:rgba(120,80,160,.4);box-shadow:0 0 14px rgba(10,4,18,.65)}
+.sidebtn.glow{border-color:rgba(120,80,160,.4)}
+.chipbtn:hover,.pill:hover{border-color:rgba(120,80,160,.5)}
 @media(max-width:860px){
   #sb{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s;z-index:40;box-shadow:4px 0 20px rgba(0,0,0,.5)}
   body.sbopen #sb{transform:none}
