@@ -29,22 +29,50 @@ function drawBunny(cv,cell){
   g.shadowBlur=0;
 }
 function drawSpiral(g,W,H,t){
-  const cx=W*0.78,cy=H*0.30,rot=t*0.00006;
-  const cols=["rgba(166,120,216,","rgba(201,179,232,","rgba(120,70,170,","rgba(236,228,246,"];
-  for(let arm=0;arm<3;arm++){
-    for(let i=0;i<70;i++){
-      const th=arm*(Math.PI*2/3)+i*0.16+rot;
-      const r=6+i*2.6;
-      const x=cx+Math.cos(th)*r;
-      const y=cy+Math.sin(th)*r*0.62;
-      const a=Math.max(0,0.5-i*0.006);
-      const sz=i%9===0?1.8:1.1;
-      g.fillStyle=cols[(i+arm)%4]+a+")";
-      g.fillRect(x,y,sz,sz);
+  const cx=W*0.5,cy=H*0.5,rot=t*0.00004,tilt=0.82;
+  const maxR=Math.min(W,H)*0.44;
+  const rnd=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x)};
+  const put=(x,y,s,col)=>{g.fillStyle=col;g.fillRect(x,y,s,s)};
+  for(let i=0;i<140;i++){
+    const r=maxR*Math.pow(rnd(i+3100),0.6);
+    const th=6.283*rnd(i+3700)+rot*0.5;
+    const a=0.10*(1-r/maxR)+0.03;
+    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r*tilt,1,"rgba(150,160,220,"+a+")");
+  }
+  const barA=rot*1.3+0.9;
+  for(let i=0;i<150;i++){
+    const u=rnd(i+11)*2-1;
+    const v=(rnd(i+501)*2-1)*0.16;
+    const d=Math.abs(u);
+    const x=u*maxR*0.20,y=v*maxR*0.20;
+    const xr=cx+x*Math.cos(barA)-y*Math.sin(barA);
+    const yr=cy+(x*Math.sin(barA)+y*Math.cos(barA))*tilt;
+    const a=0.55*(1-d*0.75)+0.10;
+    const warm=i%7===0?"rgba(255,214,160,":"rgba(246,232,205,";
+    put(xr,yr,i%5===0?2:1.4,warm+a+")");
+  }
+  for(let i=0;i<110;i++){
+    const r=maxR*0.17*Math.pow(rnd(i+907),0.6);
+    const th=6.283*rnd(i+1301);
+    const a=0.40*(1-r/(maxR*0.18))+0.08;
+    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r*tilt,1.3,"rgba(250,240,220,"+a+")");
+  }
+  for(let arm=0;arm<2;arm++){
+    for(let i=0;i<230;i++){
+      const f=i/230;
+      const th=arm*Math.PI+i*0.052+rot;
+      const r=maxR*(0.14+0.86*f);
+      const spread=(rnd(i+arm*7001)*2-1)*maxR*0.045*(0.35+f);
+      const px=Math.cos(th)*r-Math.sin(th)*spread;
+      const py=(Math.sin(th)*r+Math.cos(th)*spread)*tilt;
+      const clump=i%17===0;
+      const bright=i%9===0;
+      const col=clump?"rgba(244,114,182,":bright?"rgba(236,228,246,":"rgba(166,170,235,";
+      const a=(clump?0.5:bright?0.45:0.30)*(1-f*0.35)+0.05;
+      put(cx+px,cy+py,clump?1.8:bright?1.5:1.1,col+a+")");
     }
   }
-  g.fillStyle="rgba(236,228,246,0.8)";
-  g.fillRect(cx-1,cy-1,2.5,2.5);
+  put(cx-1,cy-1,2.4,"rgba(255,244,224,0.85)");
 }
 function initStars(){
   const cv=$("#stars");if(!cv)return;
