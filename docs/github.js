@@ -7,7 +7,52 @@ async function validate(){return(await api("GET","/user")).login}
 async function postBlob(c){return(await api("POST","/repos/"+OWNER+"/"+REPO+"/git/blobs",{content:b64(c),encoding:"base64"})).sha}
 const norm=s=>s.split("\n").map(x=>x.trim()).join("\n").trim();
 function applyEdit(content,find,replace){if(content.includes(find))return content.replace(find,replace);const cf=norm(find).split("\n"),cl=content.split("\n");outer:for(let s=0;s+cf.length<=cl.length;s++){for(let j=0;j<cf.length;j++)if(cl[s+j].trim()!==cf[j])continue outer;return cl.slice(0,s).concat(replace.split("\n"),cl.slice(s+cf.length)).join("\n")}return null}
-async function commitOps(ops,message){let refSha=null,baseTree=null;try{const ref=await api("GET","/repos/"+OWNER+"/"+REPO+"/git/ref/heads/"+BRANCH);refSha=ref.object.sha;baseTree=(await api("GET","/repos/"+OWNER+"/"+REPO+"/git/commits/"+refSha)).tree.sha}catch(e){if(e.code!==404)throw e;await api("GET","/repos/"+OWNER+"/"+REPO)}const entries=[];for(const op of ops){if(op.kind==="FILE"){entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(op.content)})}else if(op.kind==="DELETE"){entries.push({path:op.path,mode:"100644",type:"blob",sha:null})}else{let content=unb64((await api("GET","/repos/"+OWNER+"/"+REPO+"/contents/"+op.path+"?ref="+BRANCH)).content);for(const h of op.hunks){const next=applyEdit(content,h.find,h.replace);if(next==null)throw new Error("hunk miss in "+op.path);content=next}entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(content)})}}const treeBody={tree:entries};if(baseTree)treeBody.base_tree=baseTree;const tree=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/trees",treeBody);const commit=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/commits",{message,tree:tree.sha,parents:refSha?[refSha]:[]});if(refSha)await api("PATCH","/repos/"+OWNER+"/"+REPO+"/git/refs/heads/"+BRANCH,{sha:commit.sha,force:false});else await api("POST","/repos/"+OWNER+"/"+REPO+"/git/refs",{ref:"refs/heads/"+BRANCH,sha:commit.sha});return commit}
+async function commitOps(ops,message){
+  let refSha=null,baseTree=null;
+  try{
+    const ref=await api("GET","/repos/"+OWNER+"/"+REPO+"/git/ref/heads/"+BRANCH);
+    refSha=ref.object.sha;
+    baseTree=(await api("GET","/repos/"+OWNER+"/"+REPO+"/git/commits/"+refSha)).tree.sha;
+  }catch(e){
+    if(e.code!==404)throw e;
+    await api("GET","/repos/"+OWNER+"/"+REPO);
+  }
+  const misses=[];
+  const entries=[];
+  for(const op of ops){
+    if(op.kind==="FILE"){
+      entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(op.content)});
+    }else if(op.kind==="DELETE"){
+      entries.push({path:op.path,mode:"100644",type:"blob",sha:null});
+    }else{
+      let content;
+      try{
+        content=unb64((await api("GET","/repos/"+OWNER+"/"+REPO+"/contents/"+op.path+"?ref="+BRANCH)).content);
+      }catch(e){
+        misses.push("cannot read "+op.path+" from "+BRANCH+" ("+e.message+")");
+        continue;
+      }
+      for(let hi=0;hi<op.hunks.length;hi++){
+        const h=op.hunks[hi];
+        const next=applyEdit(content,h.find,h.replace);
+        if(next==null){
+          misses.push("hunk "+(hi+1)+"/"+op.hunks.length+" in "+op.path+" — FIND first line: "+h.find.split("\n")[0].slice(0,90));
+          continue;
+        }
+        content=next;
+      }
+      entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(content)});
+    }
+  }
+  if(misses.length)throw new Error("HUNK MISS REPORT\n"+misses.join("\n")+"\nNothing was committed. Fix the FIND blocks or send a FILE op.");
+  const treeBody={tree:entries};
+  if(baseTree)treeBody.base_tree=baseTree;
+  const tree=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/trees",treeBody);
+  const commit=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/commits",{message,tree:tree.sha,parents:refSha?[refSha]:[]});
+  if(refSha)await api("PATCH","/repos/"+OWNER+"/"+REPO+"/git/refs/heads/"+BRANCH,{sha:commit.sha,force:false});
+  else await api("POST","/repos/"+OWNER+"/"+REPO+"/git/refs",{ref:"refs/heads/"+BRANCH,sha:commit.sha});
+  return commit;
+}
 async function latestRun(){const j=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs?branch="+BRANCH+"&per_page=3");return(j.workflow_runs||[])[0]||null}
 async function runLog(runId){const jobs=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs/"+runId+"/jobs");const list=jobs.jobs||[];const job=list.find(j=>j.conclusion==="failure")||list[0];if(!job)return"";const r=await fetch("https://api.github.com/repos/"+OWNER+"/"+REPO+"/actions/jobs/"+job.id+"/logs",{headers:{Authorization:"Bearer "+PAT,Accept:"application/vnd.github+json"}});return await r.text()}
 async function artifactUrl(runId){const a=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs/"+runId+"/artifacts");return(a.artifacts||[])[0]?(a.artifacts||[])[0].archive_download_url:null}
