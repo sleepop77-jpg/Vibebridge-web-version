@@ -300,9 +300,9 @@ function exportChat(){
   a.download=c.title.replace(/\W+/g,"-")+".md";a.click();
   toast("chat exported as markdown");
 }
-loadAll();
-initStars();
-drawBunny($("#bunny"),3);drawBunny($("#sbbunny"),1);
+try{loadAll()}catch(e){}
+try{initStars()}catch(e){}
+try{drawBunny($("#bunny"),3);drawBunny($("#sbbunny"),1)}catch(e){}
 BUILTINS.forEach(pair=>{
   const c=el("button","chipbtn",pair[0]);c.onclick=()=>{$("#input").value=pair[1];$("#input").focus();autoGrow()};
   $("#chips").appendChild(c);
@@ -311,8 +311,10 @@ BUILTINS.forEach(pair=>{
 });
 const tipEl=$("#tip");if(tipEl)tipEl.textContent="Tip: "+TIPS[0];
 setInterval(()=>{tipIx=(tipIx+1)%TIPS.length;const tp=$("#tip");if(tp)tp.textContent="Tip: "+TIPS[tipIx]},6000);
-renderChatList();renderPushLog();updateKeyStats();
-if(!Object.keys(chats).length)newChat();else{const k=Object.keys(chats);switchChat(k[k.length-1])}
+try{renderChatList()}catch(e){}
+try{renderPushLog()}catch(e){}
+try{updateKeyStats()}catch(e){}
+try{if(!Object.keys(chats).length)newChat();else{const k=Object.keys(chats);switchChat(k[k.length-1])}}catch(e){}
 $("#send").onclick=send;
 $("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 $("#input").addEventListener("input",autoGrow);
