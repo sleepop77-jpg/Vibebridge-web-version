@@ -1,0 +1,31 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'dev.vibebridge'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+javafx {
+    version = '21.0.2'
+    modules = ['javafx.controls', 'javafx.graphics', 'javafx.web']
+}
+
+dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.json:json:20240303'
+}
+
+application {
+    mainClass = 'vbdesk.Main'
+}

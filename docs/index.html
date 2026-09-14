@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibeBridge // Web Control</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="stars"></canvas>
+<header>
+  <span class="logo">VIBEBRIDGE</span><span class="sub">// WEB CONTROL</span>
+  <nav>
+    <button class="tab on" data-tab="connect">CONNECT</button>
+    <button class="tab" data-tab="push">PUSH</button>
+    <button class="tab" data-tab="logs">LOGS</button>
+  </nav>
+</header>
+<main>
+  <section id="panel-connect" class="panel on">
+    <h2>CONNECT TO GITHUB</h2>
+    <p class="dim">fine-grained pat • contents read/write + actions read •
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">get one →</a></p>
+    <input id="pat" type="password" placeholder="github_pat_…">
+    <div class="row">
+      <input id="repo" placeholder="owner/repo">
+      <input id="branch" placeholder="main" value="main">
+    </div>
+    <label class="chk"><input type="checkbox" id="remember"> remember on this device (localStorage — beware shared machines)</label>
+    <button id="btn-connect" class="green">VALIDATE &amp; CONNECT</button>
+    <p id="conn-status" class="dim">not connected</p>
+  </section>
+  <section id="panel-push" class="panel">
+    <h2>BRIDGE PUSH</h2>
+    <textarea id="payload" placeholder="===VIBEBRIDGE=== v1 target=android&#10;===== FILE: path =====&#10;…"></textarea>
+    <div class="row">
+      <button id="btn-parse" class="ghost">PARSE</button>
+      <button id="btn-push" class="green">PUSH TO GITHUB</button>
+    </div>
+    <div id="plan"></div>
+    <p id="push-status" class="dim">idle</p>
+  </section>
+  <section id="panel-logs" class="panel">
+    <h2>CI LOGS</h2>
+    <div class="row">
+      <button id="btn-runs" class="ghost">LOAD RUNS</button>
+      <button id="btn-copyerrs" class="ghost">COPY ERRORS</button>
+    </div>
+    <div id="runs"></div>
+    <pre id="logview"></pre>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
