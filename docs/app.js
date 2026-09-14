@@ -28,6 +28,24 @@ function drawBunny(cv,cell){
   }));
   g.shadowBlur=0;
 }
+function drawSpiral(g,W,H,t){
+  const cx=W*0.78,cy=H*0.30,rot=t*0.00006;
+  const cols=["rgba(124,108,240,","rgba(103,232,249,","rgba(244,114,182,","rgba(230,235,255,"];
+  for(let arm=0;arm<3;arm++){
+    for(let i=0;i<70;i++){
+      const th=arm*(Math.PI*2/3)+i*0.16+rot;
+      const r=6+i*2.6;
+      const x=cx+Math.cos(th)*r;
+      const y=cy+Math.sin(th)*r*0.62;
+      const a=Math.max(0,0.5-i*0.006);
+      const sz=i%9===0?1.8:1.1;
+      g.fillStyle=cols[(i+arm)%4]+a+")";
+      g.fillRect(x,y,sz,sz);
+    }
+  }
+  g.fillStyle="rgba(230,235,255,0.8)";
+  g.fillRect(cx-1,cy-1,2.5,2.5);
+}
 function initStars(){
   const cv=$("#stars");if(!cv)return;
   const g=cv.getContext("2d");let W,H,stars=[],shot=null;
@@ -40,6 +58,7 @@ function initStars(){
       g.fillStyle="rgba(230,235,255,"+a+")";
       g.fillRect(s.x,s.y,s.r,s.r);
     }
+    drawSpiral(g,W,H,t);
     if(!shot&&Math.random()<.004)shot={x:Math.random()*W*.7,y:Math.random()*H*.3,vx:6+Math.random()*4,vy:3+Math.random()*2,life:0};
     if(shot){
       shot.x+=shot.vx;shot.y+=shot.vy;shot.life++;
