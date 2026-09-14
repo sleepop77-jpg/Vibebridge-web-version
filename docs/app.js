@@ -14,14 +14,14 @@ function saveChats(){try{localStorage.setItem("vb_chats",JSON.stringify(chats))}
 function savePushes(){try{localStorage.setItem("vb_pushes",JSON.stringify(pushHistory.slice(-50)))}catch(e){}}
 function loadAll(){
   try{chats=JSON.parse(localStorage.getItem("vb_chats")||"{}");pushHistory=JSON.parse(localStorage.getItem("vb_pushes")||"[]")}catch(e){chats={};pushHistory=[]}
-  try{const s=JSON.parse(localStorage.getItem("vb")||"null");if(s){$("#pat").value=s.p||"";$("#repo").value=s.r||"";$("#branch").value=s.b||"main";setConn(s.p,s.r,s.b);$("#connstatus").textContent="saved connection loaded";$("#connbadge").className="badge on";$("#connbadge").textContent="⚡ "+s.r}}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem("vb")||"null");if(s){$("#pat").value=s.p||"";$("#repo").value=s.r||"";$("#branch").value=s.b||"main";setConn(s.p,s.r,s.b);$("#connstatus").textContent="saved connection loaded";$("#connbadge").className="badge on";$("#connbadge").textContent=s.r}}catch(e){}
 }
 
 // toast
-function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.remove("hidden");t.classList.add("show");setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.add("hidden"),300)},2200)}
+function toast(msg){const t=$("#toast");if(!t)return;t.textContent=msg;t.classList.remove("hidden");t.classList.add("show");setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.add("hidden"),300)},2200)}
 
 // confetti
-function confetti(){const c=$("#confetti");const colors=["#10a37f","#fbbf24","#ff5252","#ececec","#818cf8","#f472b6"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top=-10+"px";d.style.background=colors[i%colors.length];d.style.animationDelay=Math.random()*.5+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>c.innerHTML="",2000)}
+function confetti(){}
 
 // bunny drawing
 function drawBunny(cv,cell){const g=cv.getContext("2d");cv.width=10*cell;cv.height=12*cell;BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{if(ch==="#")g.fillStyle="#ececec";else if(ch==="R")g.fillStyle="#ff4d4d";else if(ch==="P")g.fillStyle="#ffb6c1";else return;g.fillRect(x*cell,y*cell,cell,cell)}))}
@@ -30,8 +30,8 @@ function drawBunny(cv,cell){const g=cv.getContext("2d");cv.width=10*cell;cv.heig
 function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d}
 function scrollEnd(){const c=$("#chat");requestAnimationFrame(()=>c.scrollTop=c.scrollHeight)}
 function hideEmpty(){const e=$("#empty");if(e)e.style.display="none"}
-function updateSendBtn(){$("#send").disabled=!$("#input").value.trim()}
-function autoGrow(){const i=$("#input");i.style.height="auto";i.style.height=Math.min(i.scrollHeight,160)+"px";$("#charcount").textContent=i.value.length;updateSendBtn()}
+function updateSendBtn(){const s=$("#send");if(s)s.disabled=!$("#input").value.trim()}
+function autoGrow(){const i=$("#input");if(!i)return;i.style.height="auto";i.style.height=Math.min(i.scrollHeight,160)+"px";const cc=$("#charcount");if(cc)cc.textContent=i.value.length;updateSendBtn()}
 
 // chat management
 function newChat(){
@@ -44,7 +44,7 @@ function switchChat(id){
   $("#flow").innerHTML="";
   const c=chats[id];
   if(!c)return;
-  if(c.messages.length===0){$("#empty").style.display="";} else {$("#empty").style.display="none";c.messages.forEach(m=>{if(m.type==="user")addUserBubble(m.text,m.isCode);else if(m.type==="prompt")addPromptBubble(m.text,m.model);else if(m.type==="note")addNoteBubble(m.text,m.bad);else if(m.type==="parse")addParseCardFromSaved(m);else if(m.type==="push")addPushCardFromSaved(m)})}
+  const em=$("#empty");if(c.messages.length===0){if(em)em.style.display="";} else {if(em)em.style.display="none";c.messages.forEach(m=>{if(m.type==="user")addUserBubble(m.text,m.isCode);else if(m.type==="prompt")addPromptBubble(m.text,m.model);else if(m.type==="note")addNoteBubble(m.text,m.bad);else if(m.type==="parse")addParseCardFromSaved(m);else if(m.type==="push")addPushCardFromSaved(m)})}
   renderChatList();scrollEnd();
 }
 function deleteChat(id){
@@ -61,18 +61,18 @@ function pushMsg(msg){
   chats[currentChat].messages.push(msg);saveChats();
 }
 function renderChatList(){
-  const box=$("#chatlist");box.innerHTML="";
+  const box=$("#chatlist");if(!box)return;box.innerHTML="";
   const sorted=Object.values(chats).sort((a,b)=>b.created-a.created);
   sorted.forEach(c=>{
     const d=el("div","chatitem"+(c.id===currentChat?" active":""));
-    d.innerHTML='<span class="ico">💬</span><span>'+esc(c.title)+'</span><button class="del" title="Delete chat">✕</button>';
+    d.innerHTML='<span class="ico">&gt;</span><span>'+esc(c.title)+'</span><button class="del" title="Delete chat">x</button>';
     d.querySelector(".del").onclick=e=>{e.stopPropagation();deleteChat(c.id)};
     d.onclick=()=>switchChat(c.id);
     box.appendChild(d);
   });
 }
 function renderPushLog(){
-  const box=$("#pushlog");box.innerHTML="";
+  const box=$("#pushlog");if(!box)return;box.innerHTML="";
   pushHistory.slice().reverse().slice(0,20).forEach(p=>{
     const d=el("div","pushitem "+(p.ok?"ok":"fail"));
     const date=new Date(p.ts);
@@ -85,10 +85,10 @@ function updateKeyStats(){
   const nc=Object.keys(chats).length;
   const np=pushHistory.length;
   const no=pushHistory.reduce((s,p)=>s+p.ops,0);
-  $("#ks-chats").textContent=nc;
-  $("#ks-pushes").textContent=np;
-  $("#ks-ops").textContent=no;
-  $("#stats").textContent=nc+" chats • "+np+" pushes • "+no+" ops total";
+  const e1=$("#ks-chats");if(e1)e1.textContent=nc;
+  const e2=$("#ks-pushes");if(e2)e2.textContent=np;
+  const e3=$("#ks-ops");if(e3)e3.textContent=no;
+  const e4=$("#stats");if(e4)e4.textContent=nc+" chats / "+np+" pushes / "+no+" ops total";
 }
 
 // bubble builders (no save — these just draw DOM)
@@ -98,14 +98,14 @@ function addUserBubble(text,isCode){
   d.textContent=isCode?(text.length>500?text.slice(0,500)+"…":text):text;
   $("#flow").appendChild(d);scrollEnd();
 }
-function assistantRow(){hideEmpty();const row=el("div","msg arow");const body=el("div","abody");row.append(el("div","avatar","🐰"),body);$("#flow").appendChild(row);scrollEnd();return body}
+function assistantRow(){hideEmpty();const row=el("div","msg arow");const body=el("div","abody");row.append(el("div","avatar","VB"),body);$("#flow").appendChild(row);scrollEnd();return body}
 function addNoteBubble(text,bad){assistantRow().appendChild(el("div",bad?"note bad":"note",esc(text)))}
 function addPromptBubble(text,mod){
   const body=assistantRow();
   body.appendChild(el("div","alabel","PROMPT • "+(mod||model)));
   const pre=el("pre","prompttext");pre.textContent=text;body.appendChild(pre);
   const btns=el("div","cardbtns");
-  const copy=el("button","mini","📋 COPY");
+  const copy=el("button","mini","COPY");
   copy.onclick=()=>{navigator.clipboard.writeText(text);toast("prompt copied to clipboard")};
   btns.appendChild(copy);body.appendChild(btns);scrollEnd();
 }
@@ -140,7 +140,7 @@ function addParseCard(r){
   r.warnings.forEach(w=>body.appendChild(el("div","warnline","⚠ "+esc(w))));
   buildFileRows(body,r.ops);
   const btns=el("div","cardbtns");
-  const push=el("button","green","↑ PUSH TO GITHUB");
+  const push=el("button","green","PUSH TO GITHUB");
   push.onclick=()=>doPush(body,push);
   btns.appendChild(push);
   body.appendChild(btns);scrollEnd();
@@ -182,7 +182,7 @@ async function doPush(body,btn){
     const ok=run&&run.conclusion==="success";
     pushHistory.push({sha:commit.sha,ts:Date.now(),ops:opsCount,ok,message:"web push ("+opsCount+" ops)"});savePushes();renderPushLog();updateKeyStats();
     pushMsg({type:"push",sha:commit.sha,ok});saveChats();
-    if(ok)confetti();
+    // ci pass feedback: status text only, no animation
     finalize(run,commit,btns,st);
   }catch(e){st.textContent="✗ "+e.message;st.className="status bad";btn.disabled=false;btn.textContent="↑ PUSH TO GITHUB"}
 }
@@ -190,15 +190,15 @@ function finalize(run,commit,btns,st){
   const ok=run&&run.conclusion==="success";
   st.textContent=ok?"✓ CI PASSED — commit "+commit.sha.slice(0,7):"✗ CI "+(run&&run.conclusion||"unknown")+" — commit "+commit.sha.slice(0,7);
   st.className="status "+(ok?"good":"bad");
-  const open=el("button","mini","🔗 OPEN RUN");open.onclick=()=>run&&window.open(run.html_url);btns.appendChild(open);
+  const open=el("button","mini","OPEN RUN");open.onclick=()=>run&&window.open(run.html_url);btns.appendChild(open);
   if(ok){
-    const dl=el("button","mini","📦 DOWNLOAD APK ZIP");
+    const dl=el("button","mini","DOWNLOAD APK ZIP");
     dl.onclick=async()=>{const u=await artifactUrl(run.id);if(!u)return;const r=await fetch(u,{headers:{Authorization:"Bearer "+PAT}});const a=document.createElement("a");a.href=URL.createObjectURL(await r.blob());a.download="vibebridge-"+commit.sha.slice(0,7)+".zip";a.click();toast("downloading APK zip")};
     btns.appendChild(dl);
   }else{
-    const cp=el("button","mini","📋 COPY ERRORS");cp.onclick=async()=>{const log=await runLog(run.id);navigator.clipboard.writeText(extractErrors(log).join("\n")||log.slice(-20000));toast("errors copied")};
-    const fx=el("button","mini amber","⚡ FIX IT");fx.onclick=async()=>{const log=await runLog(run.id);const errs=extractErrors(log);const prompt=compilePrompt("my CI build failed with these errors:\n"+(errs.slice(0,25).join("\n")||log.slice(-3000))+"\nfix every error in the exact files mentioned.");addPromptBubble(prompt,model);pushMsg({type:"prompt",text:prompt,model});toast("fix prompt generated")};
-    const md=el("button","mini","📄 SAVE .MD");md.onclick=async()=>{const log=await runLog(run.id);const t="# CI failure\ncommit "+commit.sha+"\n\n## errors\n```\n"+extractErrors(log).join("\n")+"\n```\n\n## tail\n```\n"+log.slice(-20000)+"\n```\n";const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/markdown"}));a.download="vibebridge-errors-"+commit.sha.slice(0,7)+".md";a.click();toast("error report saved")};
+    const cp=el("button","mini","COPY ERRORS");cp.onclick=async()=>{const log=await runLog(run.id);navigator.clipboard.writeText(extractErrors(log).join("\n")||log.slice(-20000));toast("errors copied")};
+    const fx=el("button","mini amber","FIX IT");fx.onclick=async()=>{const log=await runLog(run.id);const errs=extractErrors(log);const prompt=compilePrompt("my CI build failed with these errors:\n"+(errs.slice(0,25).join("\n")||log.slice(-3000))+"\nfix every error in the exact files mentioned.");addPromptBubble(prompt,model);pushMsg({type:"prompt",text:prompt,model});toast("fix prompt generated")};
+    const md=el("button","mini","SAVE .MD");md.onclick=async()=>{const log=await runLog(run.id);const t="# CI failure\ncommit "+commit.sha+"\n\n## errors\n```\n"+extractErrors(log).join("\n")+"\n```\n\n## tail\n```\n"+log.slice(-20000)+"\n```\n";const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/markdown"}));a.download="vibebridge-errors-"+commit.sha.slice(0,7)+".md";a.click();toast("error report saved")};
     btns.append(cp,fx,md);
   }
   scrollEnd();
@@ -220,12 +220,8 @@ function send(){
   }else{
     addUserBubble(t,false);pushMsg({type:"user",text:t,isCode:false});
     updateTitle(currentChat,t);
-    $("#typing").classList.remove("hidden");
-    setTimeout(()=>{
-      $("#typing").classList.add("hidden");
-      const p=compilePrompt(t);
-      addPromptBubble(p,model);pushMsg({type:"prompt",text:p,model});
-    },600);
+    const p=compilePrompt(t);
+    addPromptBubble(p,model);pushMsg({type:"prompt",text:p,model});
   }
 }
 
@@ -246,8 +242,8 @@ function exportChat(){
 }
 
 // init
-loadAll();
-drawBunny($("#bunny"),6);drawBunny($("#sbbunny"),3);
+try{loadAll()}catch(e){}
+try{drawBunny($("#bunny"),6);drawBunny($("#sbbunny"),3)}catch(e){}
 BUILTINS.forEach(([n,idea])=>{
   const c=el("button","chipbtn",n);c.onclick=()=>{$("#input").value=idea;$("#input").focus();autoGrow()};
   $("#chips").appendChild(c);
@@ -255,9 +251,11 @@ BUILTINS.forEach(([n,idea])=>{
   $("#tplmenu").appendChild(m);
 });
 $("#tip").textContent="TIP // "+TIPS[0];
-setInterval(()=>{tipIx=(tipIx+1)%TIPS.length;$("#tip").style.opacity=0;setTimeout(()=>{$("#tip").textContent="TIP // "+TIPS[tipIx];$("#tip").style.opacity=1},400)},5000);
-renderChatList();renderPushLog();updateKeyStats();
-if(!Object.keys(chats).length)newChat();else{const k=Object.keys(chats);switchChat(k[k.length-1])}
+setInterval(()=>{tipIx=(tipIx+1)%TIPS.length;const tp=$("#tip");if(tp)tp.textContent="TIP // "+TIPS[tipIx]},6000);
+try{renderChatList()}catch(e){}
+try{renderPushLog()}catch(e){}
+try{updateKeyStats()}catch(e){}
+try{if(!Object.keys(chats).length)newChat();else{const k=Object.keys(chats);switchChat(k[k.length-1])}}catch(e){}
 
 // events
 $("#send").onclick=send;
@@ -280,9 +278,9 @@ $("#connect").onclick=async()=>{
     const login=await validate();
     if($("#remember").checked)localStorage.setItem("vb",JSON.stringify({p:$("#pat").value,r:$("#repo").value,b:$("#branch").value}));
     st.textContent="connected as "+login;st.className="dim small good";
-    $("#connbadge").className="badge on";$("#connbadge").textContent="⚡ "+$("#repo").value;
+    $("#connbadge").className="badge on";$("#connbadge").textContent=$("#repo").value;
     toast("connected as "+login);
-  }catch(e){st.textContent="failed: "+e.message;st.className="dim small bad";$("#connbadge").className="badge off";$("#connbadge").textContent="⚡ OFFLINE"}
+  }catch(e){st.textContent="failed: "+e.message;st.className="dim small bad";$("#connbadge").className="badge off";$("#connbadge").textContent="OFFLINE"}
 };
 $("#kbshort").onclick=e=>{e.preventDefault();$("#kbmodal").classList.remove("hidden")};
 document.addEventListener("keydown",e=>{
