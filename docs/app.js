@@ -89,44 +89,34 @@ function buildStarLayer(W,H,par){
   return c;
 }
 function initStars(){
-  const cv=$("#stars");if(!cv)return;
-  const g=cv.getContext("2d");
-  let W,H,galaxy,starA,starB,shot=null,last=0,rt=null;
-  function build(){
-    W=cv.width=innerWidth;H=cv.height=innerHeight;
-    galaxy=buildGalaxy(Math.min(W,H)*0.44);
-    starA=buildStarLayer(W,H,0);starB=buildStarLayer(W,H,1);
-  }
-  build();
-  addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(build,150)});
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function blit(t){
-    g.clearRect(0,0,W,H);
-    const tw=Math.sin(t*.0012);
-    g.globalAlpha=.75+.25*tw;g.drawImage(starA,0,0);
-    g.globalAlpha=.75-.25*tw;g.drawImage(starB,0,0);
-    g.globalAlpha=1;
-    g.save();g.translate(W/2,H/2);g.rotate(t*.00004);g.scale(1,0.82);
-    g.drawImage(galaxy,-galaxy.width/2,-galaxy.height/2);
-    g.restore();
+  let rt=null;
+  function render(){
+    const a=$("#starA"),b=$("#starB"),gx=$("#galaxy");
+    if(!a||!b||!gx)return;
+    const W=innerWidth,H=innerHeight;
+    a.width=W;a.height=H;b.width=W;b.height=H;
+    a.getContext("2d").drawImage(buildStarLayer(W,H,0),0,0);
+    b.getContext("2d").drawImage(buildStarLayer(W,H,1),0,0);
+    const g=buildGalaxy(Math.min(W,H)*0.44);
+    gx.width=g.width;gx.height=g.height;
+    gx.getContext("2d").drawImage(g,0,0);
   }
-  if(reduce){blit(0);return}
-  (function tick(t){
-    requestAnimationFrame(tick);
-    if(t-last<33)return;
-    last=t;
-    blit(t);
-    if(!shot&&Math.random()<.004)shot={x:Math.random()*W*.7,y:Math.random()*H*.3,vx:6+Math.random()*4,vy:3+Math.random()*2,life:0};
-    if(shot){
-      shot.x+=shot.vx;shot.y+=shot.vy;shot.life++;
-      g.strokeStyle="rgba(166,120,216,"+Math.max(0,1-shot.life/40)+")";
-      g.lineWidth=1.5;g.beginPath();g.moveTo(shot.x,shot.y);g.lineTo(shot.x-shot.vx*6,shot.y-shot.vy*6);g.stroke();
-      if(shot.life>40||shot.x>W||shot.y>H)shot=null;
-    }
-  })(0);
+  render();
+  addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(render,150)});
+  if(reduce)return;
+  setInterval(()=>{
+    if(document.hidden)return;
+    const d=document.createElement("div");
+    d.className="shot";
+    d.style.left=Math.random()*70+"vw";
+    d.style.top=Math.random()*30+"vh";
+    document.body.appendChild(d);
+    d.addEventListener("animationend",()=>d.remove());
+  },7000);
 }
 function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d}
-function scrollEnd(){const c=$("#chat");if(c)requestAnimationFrame(()=>c.scrollTop=c.scrollHeight)}
+function scrollEnd(){const c=$("#chat");if(!c)return;const l=c.lastElementChild;requestAnimationFrame(()=>{if(l&&l.scrollIntoView)l.scrollIntoView({block:"end"});else c.scrollTop=c.scrollHeight})}
 function hideEmpty(){const e=$("#empty");if(e)e.style.display="none"}
 function updateSendBtn(){const s=$("#send");if(s)s.disabled=!$("#input").value.trim()}
 function autoGrow(){const i=$("#input");if(!i)return;i.style.height="auto";i.style.height=Math.min(i.scrollHeight,160)+"px";const cc=$("#charcount");if(cc)cc.textContent=i.value.length;updateSendBtn()}
