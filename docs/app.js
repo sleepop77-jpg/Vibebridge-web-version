@@ -3,7 +3,7 @@ const $$=s=>document.querySelectorAll(s);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const BUNNY=[".##....##.",".##....##.",".###..###.",".########.","##R####R##","##########","####PP####",".########.",".########.","##########","##########","..##..##.."];
+const BUNNY=[".......##..........##.......","......###..........###......",".....####..........####.....",".....#####........#####.....",".....#####........#####.....","......####........####......","......####........####......","......####........####......",".......###........###.......","........##........##........",".........#........#.........","............................",".......##############.......",".....##################.....","....####################....","...######################...","...#####RRR######RRR#####...","...######################...","...############PP########...","...######################...","...######################...",".....##################.....",".......##############.......","......################......","....####################....","...######################...","...######################...","...######################...",".....##################.....",".......##############.......",".......######....######.....","......########..########....","......################......",".......##############......."];
 const BUILTINS=[["ANDROID CHAT","add a chatgpt-style chat screen to my android app with compose"],["FIX CI","my github actions android build fails, diagnose and fix the gradle files"],["DARK RESTYLE","restyle my app with a pure black theme and green accents"],["NEW FEATURE","add a settings screen with toggle switches for notifications and dark mode"]];
 const TIPS=["type an idea — get a bridge prompt tuned for your target model","paste any AI reply back here; FILE / EDIT / DELETE blocks parse themselves","tap a file row to preview its diff before pushing","CI red? FIX IT compiles the errors into a ready-to-copy fix prompt","this whole app lives in docs/ — it can rebuild itself from a chat","keyboard shortcuts: Ctrl+K new chat, Ctrl+E export","push history lives in the sidebar — every commit tracked"];
 let model="QWEN STUDIO",tipIx=0,pendingOps=null;
@@ -21,10 +21,10 @@ function loadAll(){
 function toast(msg){const t=$("#toast");if(!t)return;t.textContent=msg;t.classList.remove("hidden");t.classList.add("show");setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.add("hidden"),300)},2200)}
 
 // confetti
-function confetti(){}
+function confetti(){const c=$("#confetti");if(!c)return;const colors=["#10a37f","#fbbf24","#ff5252","#ececec","#818cf8","#f472b6"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top="-10px";d.style.background=colors[i%colors.length];d.style.animationDelay=(Math.random()*.5)+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>{c.innerHTML=""},2000)}
 
 // bunny drawing
-function drawBunny(cv,cell){const g=cv.getContext("2d");cv.width=10*cell;cv.height=12*cell;BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{if(ch==="#")g.fillStyle="#ececec";else if(ch==="R")g.fillStyle="#ff4d4d";else if(ch==="P")g.fillStyle="#ffb6c1";else return;g.fillRect(x*cell,y*cell,cell,cell)}))}
+function drawBunny(cv,cell){const g=cv.getContext("2d");cv.width=BUNNY[0].length*cell;cv.height=BUNNY.length*cell;BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{if(ch==="#")g.fillStyle="#ececec";else if(ch==="R")g.fillStyle="#ff4d4d";else if(ch==="P")g.fillStyle="#ffb6c1";else return;g.fillRect(x*cell,y*cell,cell,cell)}))}
 
 // helpers
 function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d}
@@ -182,7 +182,7 @@ async function doPush(body,btn){
     const ok=run&&run.conclusion==="success";
     pushHistory.push({sha:commit.sha,ts:Date.now(),ops:opsCount,ok,message:"web push ("+opsCount+" ops)"});savePushes();renderPushLog();updateKeyStats();
     pushMsg({type:"push",sha:commit.sha,ok});saveChats();
-    // ci pass feedback: status text only, no animation
+    if(ok)confetti();
     finalize(run,commit,btns,st);
   }catch(e){st.textContent="✗ "+e.message;st.className="status bad";btn.disabled=false;btn.textContent="↑ PUSH TO GITHUB"}
 }
@@ -243,7 +243,7 @@ function exportChat(){
 
 // init
 try{loadAll()}catch(e){}
-try{drawBunny($("#bunny"),6);drawBunny($("#sbbunny"),3)}catch(e){}
+try{drawBunny($("#bunny"),3);drawBunny($("#sbbunny"),1)}catch(e){}
 BUILTINS.forEach(([n,idea])=>{
   const c=el("button","chipbtn",n);c.onclick=()=>{$("#input").value=idea;$("#input").focus();autoGrow()};
   $("#chips").appendChild(c);
