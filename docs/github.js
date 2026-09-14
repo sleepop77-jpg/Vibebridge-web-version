@@ -1,127 +1,15 @@
-let PAT = "", OWNER = "", REPO = "", BRANCH = "main";
-function setConn(pat, repo, branch) {
-  PAT = pat || ""; BRANCH = branch || "main";
-  const p = (repo || "").split("/");
-  OWNER = p[0] || ""; REPO = p[1] || "";
-  return !!(OWNER && REPO);
-}
-async function api(method, path, body) {
-  const r = await fetch("https://api.github.com" + path, {
-    method,
-    headers: Object.assign(
-      { Authorization: "Bearer " + PAT, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-      body ? { "Content-Type": "application/json" } : {}),
-    body: body ? JSON.stringify(body) : undefined
-  });
-  if (!r.ok) { const e = new Error("HTTP " + r.status + " on " + path); e.code = r.status; throw e; }
-  const t = await r.text();
-  return t ? JSON.parse(t) : {};
-}
-const b64 = (s) => btoa(unescape(encodeURIComponent(s)));
-const unb64 = (s) => decodeURIComponent(escape(atob((s || "").replace(/\s/g, ""))));
-async function validate() { return (await api("GET", "/user")).login; }
-async function postBlob(content) {
-  return (await api("POST", "/repos/" + OWNER + "/" + REPO + "/git/blobs", { content: b64(content), encoding: "base64" })).sha;
-}
-const norm = (s) => s.split("\n").map(x => x.trim()).join("\n").trim();
-function applyEdit(content, find, replace) {
-  if (content.includes(find)) return content.replace(find, replace);
-  const cf = norm(find).split("\n"), cl = content.split("\n");
-  outer: for (let s = 0; s + cf.length <= cl.length; s++) {
-    for (let j = 0; j < cf.length; j++) if (cl[s + j].trim() !== cf[j]) continue outer;
-    return cl.slice(0, s).concat(replace.split("\n"), cl.slice(s + cf.length)).join("\n");
-  }
-  return null;
-}
-async function commitOps(ops, message) {
-  let refSha = null, baseTree = null;
-  try {
-    const ref = await api("GET", "/repos/" + OWNER + "/" + REPO + "/git/ref/heads/" + BRANCH);
-    refSha = ref.object.sha;
-    baseTree = (await api("GET", "/repos/" + OWNER + "/" + REPO + "/git/commits/" + refSha)).tree.sha;
-  } catch (e) {
-    if (e.code !== 404) throw e;
-    await api("GET", "/repos/" + OWNER + "/" + REPO);
-  }
-  const entries = [];
-  for (const op of ops) {
-    if (op.kind === "FILE") {
-      entries.push({ path: op.path, mode: "100644", type: "blob", sha: await postBlob(op.content) });
-    } else if (op.kind === "DELETE") {
-      entries.push({ path: op.path, mode: "100644", type: "blob", sha: null });
-    } else {
-      let content = unb64((await api("GET", "/repos/" + OWNER + "/" + REPO + "/contents/" + op.path + "?ref=" + BRANCH)).content);
-      for (const h of op.hunks) {
-        const next = applyEdit(content, h.find, h.replace);
-        if (next == null) throw new Error("hunk miss in " + op.path);
-        content = next;
-      }
-      entries.push({ path: op.path, mode: "100644", type: "blob", sha: await postBlob(content) });
-    }
-  }
-  const treeBody = { tree: entries };
-  if (baseTree) treeBody.base_tree = baseTree;
-  const tree = await api("POST", "/repos/" + OWNER + "/" + REPO + "/git/trees", treeBody);
-  const commit = await api("POST", "/repos/" + OWNER + "/" + REPO + "/git/commits",
-    { message, tree: tree.sha, parents: refSha ? [refSha] : [] });
-  if (refSha) await api("PATCH", "/repos/" + OWNER + "/" + REPO + "/git/refs/heads/" + BRANCH, { sha: commit.sha, force: false });
-  else await api("POST", "/repos/" + OWNER + "/" + REPO + "/git/refs", { ref: "refs/heads/" + BRANCH, sha: commit.sha });
-  return commit;
-}
-async function latestRun() {
-  const j = await api("GET", "/repos/" + OWNER + "/" + REPO + "/actions/runs?branch=" + BRANCH + "&per_page=3");
-  return (j.workflow_runs || [])[0] || null;
-}
-async function runLog(runId) {
-  const jobs = await api("GET", "/repos/" + OWNER + "/" + REPO + "/actions/runs/" + runId + "/jobs");
-  const list = jobs.jobs || [];
-  const job = list.find(j => j.conclusion === "failure") || list[0];
-  if (!job) return "";
-  const r = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/actions/jobs/" + job.id + "/logs",
-    { headers: { Authorization: "Bearer " + PAT, Accept: "application/vnd.github+json" } });
-  return await r.text();
-}
-async function artifactUrl(runId) {
-  const a = await api("GET", "/repos/" + OWNER + "/" + REPO + "/actions/runs/" + runId + "/artifacts");
-  return (a.artifacts || [])[0] ? (a.artifacts || [])[0].archive_download_url : null;
-}
-function extractErrors(log) {
-  const out = [];
-  for (const m of log.match(/e: file:\/\/[^\n]*/g) || []) if (!out.includes(m)) out.push(m);
-  if (!out.length) for (const l of log.split("\n")) {
-    const i = l.indexOf("error:");
-    if (i >= 0) { const v = l.slice(i).trim(); if (!out.includes(v)) out.push(v); }
-  }
-  return out;
-}
-function parsePayload(text) {
-  const ops = [], warnings = [];
-  if (!text.includes("===VIBEBRIDGE===")) warnings.push("no sentinel — lenient mode (strict is off)");
-  const lines = text.split("\n"); let i = 0;
-  const clean = (l, t) => l.replace(t, "").replace(/=+\s*$/, "").trim();
-  while (i < lines.length) {
-    const l = lines[i].trim();
-    if (l.startsWith("===== FILE:")) {
-      const path = clean(l, "===== FILE:"); const buf = []; i++;
-      while (i < lines.length && !lines[i].trim().startsWith("=====")) { buf.push(lines[i]); i++; }
-      ops.push({ kind: "FILE", path, content: buf.join("\n") }); continue;
-    }
-    if (l.startsWith("===== EDIT:")) {
-      const path = clean(l, "===== EDIT:"); const hunks = []; i++;
-      let f = [], r = [], mode = "";
-      while (i < lines.length && !lines[i].trim().startsWith("=====")) {
-        const t = lines[i].trim();
-        if (t === "--- FIND") mode = "f";
-        else if (t === "--- REPLACE") mode = "r";
-        else if (t === "--- END") { if (f.length) hunks.push({ find: f.join("\n"), replace: r.join("\n") }); f = []; r = []; mode = ""; }
-        else if (mode === "f") f.push(lines[i]);
-        else if (mode === "r") r.push(lines[i]);
-        i++;
-      }
-      ops.push({ kind: "EDIT", path, hunks }); continue;
-    }
-    if (l.startsWith("===== DELETE:")) ops.push({ kind: "DELETE", path: clean(l, "===== DELETE:") });
-    i++;
-  }
-  return { ops, warnings };
-}
+let PAT="",OWNER="",REPO="",BRANCH="main";
+function setConn(pat,repo,branch){PAT=pat||"";BRANCH=branch||"main";const p=(repo||"").split("/");OWNER=p[0]||"";REPO=p[1]||"";return!!(OWNER&&REPO)}
+async function api(method,path,body){const r=await fetch("https://api.github.com"+path,{method,headers:Object.assign({Authorization:"Bearer "+PAT,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},body?{"Content-Type":"application/json"}:{}),body:body?JSON.stringify(body):undefined});if(!r.ok){const e=new Error("HTTP "+r.status);e.code=r.status;throw e}const t=await r.text();return t?JSON.parse(t):{}}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const unb64=s=>decodeURIComponent(escape(atob((s||"").replace(/\s/g,""))));
+async function validate(){return(await api("GET","/user")).login}
+async function postBlob(c){return(await api("POST","/repos/"+OWNER+"/"+REPO+"/git/blobs",{content:b64(c),encoding:"base64"})).sha}
+const norm=s=>s.split("\n").map(x=>x.trim()).join("\n").trim();
+function applyEdit(content,find,replace){if(content.includes(find))return content.replace(find,replace);const cf=norm(find).split("\n"),cl=content.split("\n");outer:for(let s=0;s+cf.length<=cl.length;s++){for(let j=0;j<cf.length;j++)if(cl[s+j].trim()!==cf[j])continue outer;return cl.slice(0,s).concat(replace.split("\n"),cl.slice(s+cf.length)).join("\n")}return null}
+async function commitOps(ops,message){let refSha=null,baseTree=null;try{const ref=await api("GET","/repos/"+OWNER+"/"+REPO+"/git/ref/heads/"+BRANCH);refSha=ref.object.sha;baseTree=(await api("GET","/repos/"+OWNER+"/"+REPO+"/git/commits/"+refSha)).tree.sha}catch(e){if(e.code!==404)throw e;await api("GET","/repos/"+OWNER+"/"+REPO)}const entries=[];for(const op of ops){if(op.kind==="FILE"){entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(op.content)})}else if(op.kind==="DELETE"){entries.push({path:op.path,mode:"100644",type:"blob",sha:null})}else{let content=unb64((await api("GET","/repos/"+OWNER+"/"+REPO+"/contents/"+op.path+"?ref="+BRANCH)).content);for(const h of op.hunks){const next=applyEdit(content,h.find,h.replace);if(next==null)throw new Error("hunk miss in "+op.path);content=next}entries.push({path:op.path,mode:"100644",type:"blob",sha:await postBlob(content)})}}const treeBody={tree:entries};if(baseTree)treeBody.base_tree=baseTree;const tree=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/trees",treeBody);const commit=await api("POST","/repos/"+OWNER+"/"+REPO+"/git/commits",{message,tree:tree.sha,parents:refSha?[refSha]:[]});if(refSha)await api("PATCH","/repos/"+OWNER+"/"+REPO+"/git/refs/heads/"+BRANCH,{sha:commit.sha,force:false});else await api("POST","/repos/"+OWNER+"/"+REPO+"/git/refs",{ref:"refs/heads/"+BRANCH,sha:commit.sha});return commit}
+async function latestRun(){const j=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs?branch="+BRANCH+"&per_page=3");return(j.workflow_runs||[])[0]||null}
+async function runLog(runId){const jobs=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs/"+runId+"/jobs");const list=jobs.jobs||[];const job=list.find(j=>j.conclusion==="failure")||list[0];if(!job)return"";const r=await fetch("https://api.github.com/repos/"+OWNER+"/"+REPO+"/actions/jobs/"+job.id+"/logs",{headers:{Authorization:"Bearer "+PAT,Accept:"application/vnd.github+json"}});return await r.text()}
+async function artifactUrl(runId){const a=await api("GET","/repos/"+OWNER+"/"+REPO+"/actions/runs/"+runId+"/artifacts");return(a.artifacts||[])[0]?(a.artifacts||[])[0].archive_download_url:null}
+function extractErrors(log){const out=[];for(const m of log.match(/e: file:\/\/[^\n]*/g)||[])if(!out.includes(m))out.push(m);if(!out.length)for(const l of log.split("\n")){const i=l.indexOf("error:");if(i>=0){const v=l.slice(i).trim();if(!out.includes(v))out.push(v)}}return out}
+function parsePayload(text){const ops=[],warnings=[];if(!text.includes("===VIBEBRIDGE==="))warnings.push("no sentinel — lenient mode");const lines=text.split("\n");let i=0;const clean=(l,t)=>l.replace(t,"").replace(/=+\s*$/,"").trim();while(i<lines.length){const l=lines[i].trim();if(l.startsWith("===== FILE:")){const path=clean(l,"===== FILE:");const buf=[];i++;while(i<lines.length&&!lines[i].trim().startsWith("====="))buf.push(lines[i++]);ops.push({kind:"FILE",path,content:buf.join("\n")});continue}if(l.startsWith("===== EDIT:")){const path=clean(l,"===== EDIT:");const hunks=[];i++;let f=[],r=[],mode="";while(i<lines.length&&!lines[i].trim().startsWith("=====")){const t=lines[i].trim();if(t==="--- FIND")mode="f";else if(t==="--- REPLACE")mode="r";else if(t==="--- END"){if(f.length)hunks.push({find:f.join("\n"),replace:r.join("\n")});f=[];r=[];mode=""}else if(mode==="f")f.push(lines[i]);else if(mode==="r")r.push(lines[i]);i++}ops.push({kind:"EDIT",path,hunks});continue}if(l.startsWith("===== DELETE:"))ops.push({kind:"DELETE",path:clean(l,"===== DELETE:")});i++}return{ops,warnings}}

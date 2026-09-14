@@ -9,16 +9,23 @@
 <body>
 <aside id="sb">
   <div class="sbhead"><canvas id="sbbunny" width="30" height="36"></canvas><span>VIBEBRIDGE</span></div>
-  <button id="newchat" class="sidebtn">+ NEW CHAT</button>
+  <button id="newchat" class="sidebtn glow">+ NEW CHAT</button>
+  <div class="sbsec">HISTORY</div>
+  <div id="chatlist" class="chatlist"></div>
+  <div class="sbsec">PUSH LOG</div>
+  <div id="pushlog" class="pushlog"></div>
   <div class="sbsec">CONNECT</div>
   <input id="pat" type="password" placeholder="github_pat_…">
   <input id="repo" placeholder="owner/repo">
   <input id="branch" placeholder="main" value="main">
   <button id="connect" class="green full">CONNECT</button>
   <div id="connstatus" class="dim small">not connected</div>
-  <label class="chk"><input type="checkbox" id="remember" checked> remember on this device</label>
-  <label class="chk"><input type="checkbox" id="strict"> strict: require sentinel</label>
-  <div class="sbfoot">web-native vibebridge<br>same engine as the phone app<br>docs/ rebuilds itself from chat 🐰</div>
+  <label class="chk"><input type="checkbox" id="remember" checked> remember credentials</label>
+  <label class="chk"><input type="checkbox" id="strict"> strict sentinel mode</label>
+  <div class="sbfoot">
+    <div class="stats" id="stats"></div>
+    web-native vibebridge 🐰
+  </div>
 </aside>
 <div id="main">
   <header>
@@ -31,32 +38,58 @@
         <button data-m="GEMINI">GEMINI <span>small hunks</span></button>
       </div>
     </div>
+    <span class="spacer"></span>
+    <button id="clearbtn" class="headbtn" title="Clear this chat">🗑</button>
+    <button id="exportbtn" class="headbtn" title="Export chat as markdown">📄</button>
+    <div id="connbadge" class="badge off">⚡ OFFLINE</div>
   </header>
   <div id="chat">
     <div id="empty">
       <canvas id="bunny" width="60" height="72"></canvas>
       <div class="wordmark">VIBE<span>BRIDGE</span></div>
+      <div class="tagline">any AI chat → working code → shipped APK</div>
       <div id="tip" class="tip"></div>
       <div id="chips"></div>
+      <div class="keystats">
+        <div class="ks"><span id="ks-chats">0</span>chats</div>
+        <div class="ks"><span id="ks-pushes">0</span>pushes</div>
+        <div class="ks"><span id="ks-ops">0</span>file ops</div>
+      </div>
     </div>
     <div id="flow"></div>
+    <div id="typing" class="hidden"><div class="msg arow"><div class="avatar">🐰</div><div class="abody"><div class="dots"><span></span><span></span><span></span></div></div></div></div>
   </div>
   <div id="composerwrap">
     <div id="composer">
       <textarea id="input" rows="1" placeholder="Message VibeBridge…"></textarea>
       <div class="crow">
-        <button id="paste" class="pill">PASTE</button>
-        <div class="modelwrap">
-          <button id="tplbtn" class="pill">TEMPLATES ▾</button>
-          <div id="tplmenu" class="menu hidden"></div>
+        <button id="paste" class="pill" title="Paste from clipboard">📋 PASTE</button>
+        <div class="tplwrap">
+          <button id="tplbtn" class="pill">⚡ TEMPLATES ▾</button>
+          <div id="tplmenu" class="menu up hidden"></div>
         </div>
         <span class="spacer"></span>
-        <button id="send" class="sendbtn">↑</button>
+        <span id="charcount" class="charcount">0</span>
+        <button id="send" class="sendbtn" disabled>↑</button>
       </div>
     </div>
-    <div class="footnote">VibeBridge web • payloads parse locally • tokens stay in this tab</div>
+    <div class="footnote">tokens stay in this tab • payloads parse locally • <a href="#" id="kbshort">keyboard shortcuts</a></div>
   </div>
 </div>
+<div id="toast" class="toast hidden"></div>
+<div id="kbmodal" class="modal hidden">
+  <div class="modalcard">
+    <h3>KEYBOARD SHORTCUTS</h3>
+    <div class="krow"><kbd>Enter</kbd> send message</div>
+    <div class="krow"><kbd>Shift+Enter</kbd> new line</div>
+    <div class="krow"><kbd>Ctrl+K</kbd> new chat</div>
+    <div class="krow"><kbd>Ctrl+Shift+V</kbd> paste from clipboard</div>
+    <div class="krow"><kbd>Ctrl+E</kbd> export chat</div>
+    <div class="krow"><kbd>Esc</kbd> close menus / modals</div>
+    <button class="green" onclick="$('#kbmodal').classList.add('hidden')">GOT IT</button>
+  </div>
+</div>
+<div id="confetti"></div>
 <script src="github.js"></script>
 <script src="app.js"></script>
 </body>
