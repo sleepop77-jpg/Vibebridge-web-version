@@ -15,11 +15,11 @@ function loadAll(){
   try{const s=JSON.parse(localStorage.getItem("vb")||"null");if(s){$("#pat").value=s.p||"";$("#repo").value=s.r||"";$("#branch").value=s.b||"main";setConn(s.p,s.r,s.b);$("#connstatus").textContent="saved connection loaded";$("#connbadge").className="badge on";$("#connbadge").textContent=s.r}}catch(e){}
 }
 function toast(msg){const t=$("#toast");if(!t)return;t.textContent=msg;t.classList.remove("hidden");t.classList.add("show");setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.add("hidden"),300)},2200)}
-function confetti(){const c=$("#confetti");if(!c)return;const colors=["#7c6cf0","#67e8f9","#f472b6","#fde047","#e6ebff","#4f8df7"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top="-10px";d.style.background=colors[i%colors.length];d.style.animationDelay=(Math.random()*.5)+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>{c.innerHTML=""},2000)}
+function confetti(){const c=$("#confetti");if(!c)return;const colors=["#311b4d","#6d4a94","#a678d8","#c9b3e8","#ece4f6","#7dd8a5"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top="-10px";d.style.background=colors[i%colors.length];d.style.animationDelay=(Math.random()*.5)+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>{c.innerHTML=""},2000)}
 function drawBunny(cv,cell){
   const g=cv.getContext("2d");if(!cv)return;
   cv.width=BUNNY[0].length*cell;cv.height=BUNNY.length*cell;
-  const PAL={"#":"#f4f6ff","R":"#ff4d6d","P":"#ffb6c1","H":"rgba(103,232,249,0.75)","G":"#fbbf24","S":"#c7d2ea","Y":"#fde047","A":"#94a3b8"};
+  const PAL={"#":"#f2ecfa","R":"#ff4d6d","P":"#ffb6c1","H":"rgba(201,179,232,0.72)","G":"#fbbf24","S":"#d9c9ec","Y":"#fde047","A":"#9b8bab"};
   const GLOW={"R":"#ff4d6d","Y":"#fde047"};
   BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{
     const col=PAL[ch];if(!col)return;
@@ -30,7 +30,7 @@ function drawBunny(cv,cell){
 }
 function drawSpiral(g,W,H,t){
   const cx=W*0.78,cy=H*0.30,rot=t*0.00006;
-  const cols=["rgba(124,108,240,","rgba(103,232,249,","rgba(244,114,182,","rgba(230,235,255,"];
+  const cols=["rgba(166,120,216,","rgba(201,179,232,","rgba(120,70,170,","rgba(236,228,246,"];
   for(let arm=0;arm<3;arm++){
     for(let i=0;i<70;i++){
       const th=arm*(Math.PI*2/3)+i*0.16+rot;
@@ -43,7 +43,7 @@ function drawSpiral(g,W,H,t){
       g.fillRect(x,y,sz,sz);
     }
   }
-  g.fillStyle="rgba(230,235,255,0.8)";
+  g.fillStyle="rgba(236,228,246,0.8)";
   g.fillRect(cx-1,cy-1,2.5,2.5);
 }
 function initStars(){
@@ -55,14 +55,14 @@ function initStars(){
     g.clearRect(0,0,W,H);
     for(const s of stars){
       const a=.25+.6*Math.abs(Math.sin(s.p+t*.001*s.s));
-      g.fillStyle="rgba(230,235,255,"+a+")";
+      g.fillStyle="rgba(236,228,246,"+a+")";
       g.fillRect(s.x,s.y,s.r,s.r);
     }
     drawSpiral(g,W,H,t);
     if(!shot&&Math.random()<.004)shot={x:Math.random()*W*.7,y:Math.random()*H*.3,vx:6+Math.random()*4,vy:3+Math.random()*2,life:0};
     if(shot){
       shot.x+=shot.vx;shot.y+=shot.vy;shot.life++;
-      g.strokeStyle="rgba(167,139,250,"+Math.max(0,1-shot.life/40)+")";
+      g.strokeStyle="rgba(166,120,216,"+Math.max(0,1-shot.life/40)+")";
       g.lineWidth=1.5;g.beginPath();g.moveTo(shot.x,shot.y);g.lineTo(shot.x-shot.vx*6,shot.y-shot.vy*6);g.stroke();
       if(shot.life>40||shot.x>W||shot.y>H)shot=null;
     }
