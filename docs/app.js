@@ -341,8 +341,199 @@ $("#connect").onclick=async()=>{
 };
 $("#kbshort").onclick=e=>{e.preventDefault();$("#kbmodal").classList.remove("hidden")};
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){$$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
+  if(e.key==="Escape"){$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
   if(e.ctrlKey&&e.key==="k"){e.preventDefault();newChat();toast("new chat")}
   if(e.ctrlKey&&e.key==="e"){e.preventDefault();exportChat()}
   if(e.ctrlKey&&e.shiftKey&&e.key==="V"){e.preventDefault();$("#paste").click()}
 });
+// ---- BUNNY STUDIO easter egg: triple-click the bunny to edit + animate him ----
+(function(){
+  const PAL={"#":"#f2ecfa","R":"#ff4d6d","P":"#ffb6c1","H":"rgba(201,179,232,0.72)","G":"#fbbf24","S":"#d9c9ec","Y":"#fde047","A":"#9b8bab"};
+  const DEF=BUNNY.slice();
+  const DEFANIM="1: dy=0\n2: dy=-3\n3: dy=0\n4: dy=1";
+  const PRESETS={
+    "Bob":"1: dy=0\n2: dy=-3\n3: dy=0\n4: dy=1",
+    "Jump":"1: dy=0 sx=1.1 sy=0.9\n2: dy=-12 sx=0.95 sy=1.1\n3: dy=0 sx=1.05 sy=0.95\n4: dy=0",
+    "Wiggle":"1: rot=0\n2: rot=-7\n3: rot=0\n4: rot=7",
+    "Spin":"1: rot=0\n2: rot=90\n3: rot=180\n4: rot=270"
+  };
+  let custom=null;
+  try{custom=JSON.parse(localStorage.getItem("vb_bunny")||"null")}catch(e){}
+  let frames=custom&&custom.frames?custom.frames:[DEF.slice()];
+  let fps=custom&&custom.fps?custom.fps:6;
+  let animSrc=custom&&custom.anim?custom.anim:DEFANIM;
+  let fi=0,efi=0,tool="#",curKeys=[],modal=null,prevCv=null;
+  function paint(cv,cell,grid){
+    const g=cv.getContext("2d");if(!cv||!grid)return;
+    cv.width=grid[0].length*cell;cv.height=grid.length*cell;
+    grid.forEach((row,y)=>row.split("").forEach((ch,x)=>{
+      const col=PAL[ch];if(!col)return;
+      g.fillStyle=col;g.fillRect(x*cell,y*cell,cell,cell);
+    }));
+  }
+  drawBunny=function(cv,cell){paint(cv,cell,frames[fi%frames.length])};
+  function repaintMain(){try{drawBunny($("#bunny"),3);drawBunny($("#sbbunny"),1)}catch(e){}}
+  function parseAnim(src,n){
+    const keys=[];
+    src.split(/[\n;]+/).forEach(line=>{
+      const m=line.match(/^\s*(\d+)\s*:\s*(.*)$/);
+      if(!m)return;
+      const idx=parseInt(m[1],10)-1;
+      const t={dy:0,rot:0,sx:1,sy:1};
+      m[2].split(/\s+/).forEach(tok=>{
+        const kv=tok.split("=");
+        if(kv.length===2){
+          const v=parseFloat(kv[1]);
+          if(!isNaN(v)){
+            if(kv[0]==="dy")t.dy=v;
+            if(kv[0]==="rot")t.rot=v;
+            if(kv[0]==="sx")t.sx=v;
+            if(kv[0]==="sy")t.sy=v;
+          }
+        }
+      });
+      keys[idx]=t;
+    });
+    for(let i=0;i<n;i++)if(!keys[i])keys[i]={dy:0,rot:0,sx:1,sy:1};
+    return keys;
+  }
+  function applyAnim(){
+    curKeys=parseAnim(animSrc,Math.max(frames.length,1));
+    const dur=Math.max(.3,curKeys.length/Math.max(1,fps));
+    let css="@keyframes bunnyAnim{";
+    curKeys.forEach((k,i)=>{css+=Math.round(i/curKeys.length*100)+"%{transform:translateY("+k.dy+"px) rotate("+k.rot+"deg) scale("+k.sx+","+k.sy+")}"});
+    const k0=curKeys[0];
+    css+="100%{transform:translateY("+k0.dy+"px) rotate("+k0.rot+"deg) scale("+k0.sx+","+k0.sy+")}}";
+    let st=$("#bunnyanim");
+    if(!st){st=document.createElement("style");st.id="bunnyanim";document.head.appendChild(st)}
+    st.textContent=css;
+    const b=$("#bunny");
+    if(b)b.style.animation="bunnyAnim "+dur+"s linear infinite";
+  }
+  setInterval(()=>{
+    if(frames.length>1){
+      fi=(fi+1)%frames.length;
+      repaintMain();
+      if(modal&&!modal.classList.contains("hidden")&&prevCv){
+        paint(prevCv,6,frames[fi]);
+        const k=curKeys[fi%curKeys.length];
+        if(k)prevCv.style.transform="translateY("+k.dy+"px) rotate("+k.rot+"deg) scale("+k.sx+","+k.sy+")";
+      }
+    }
+  },Math.max(80,1000/fps));
+  function build(){
+    const m=el("div","modal");
+    const st=document.createElement("style");
+    st.textContent=".studio{max-width:600px;width:95%;max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}"
+      +".studio h3{color:#fff;font-size:14px;margin-bottom:4px}"
+      +".studio .help{font-size:10.5px;color:var(--faint);margin-bottom:10px}"
+      +".swrow{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}"
+      +".sw{width:22px;height:22px;border-radius:6px;border:2px solid transparent;cursor:pointer}"
+      +".sw.on{border-color:#fff}"
+      +".strow{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}"
+      +".stcanvas{border:1px solid var(--line);border-radius:8px;image-rendering:pixelated;cursor:crosshair;background:#0e0616}"
+      +".studio textarea{height:90px;font:11px/1.5 ui-monospace,Menlo,Consolas,monospace}"
+      +".fbtn{border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--dim)}"
+      +".fbtn.on{border-color:var(--accent);color:#fff}";
+    m.appendChild(st);
+    const card=el("div","studio");
+    card.appendChild(el("h3","","BUNNY STUDIO"));
+    card.appendChild(el("div","help","click / drag to paint • frames add motion • anim code: one line per frame, e.g.  2: dy=-4 rot=-5 sx=1.05"));
+    const swrow=el("div","swrow");
+    Object.keys(PAL).forEach(k=>{
+      const s=el("div","sw"+(k===tool?" on":""));
+      s.style.background=PAL[k];s.title="paint "+k;
+      s.onclick=()=>{tool=k;swrow.querySelectorAll(".sw").forEach(x=>x.classList.remove("on"));s.classList.add("on")};
+      swrow.appendChild(s);
+    });
+    const er=el("div","sw");
+    er.style.background="repeating-conic-gradient(#3a3a3a 0% 25%, #141414 0% 50%) 0 0/8px 8px";
+    er.title="erase";
+    er.onclick=()=>{tool=".";swrow.querySelectorAll(".sw").forEach(x=>x.classList.remove("on"));er.classList.add("on")};
+    swrow.appendChild(er);
+    card.appendChild(swrow);
+    const row=el("div","strow");
+    const ec=document.createElement("canvas");ec.className="stcanvas";
+    const pwrap=el("div","");
+    prevCv=document.createElement("canvas");prevCv.style.imageRendering="pixelated";
+    pwrap.appendChild(prevCv);
+    row.append(ec,pwrap);
+    card.appendChild(row);
+    const frow=el("div","strow");
+    card.appendChild(frow);
+    const arow=el("div","strow");
+    const fpsIn=document.createElement("input");fpsIn.type="number";fpsIn.min="1";fpsIn.max="24";fpsIn.style.width="64px";fpsIn.value=fps;
+    arow.appendChild(el("span","small dim","fps"));arow.appendChild(fpsIn);
+    card.appendChild(arow);
+    const ta=document.createElement("textarea");ta.value=animSrc;
+    card.appendChild(ta);
+    const prow=el("div","strow");
+    Object.keys(PRESETS).forEach(n=>{
+      const b=el("button","fbtn",n);
+      b.onclick=()=>{ta.value=PRESETS[n];animSrc=ta.value;applyAnim()};
+      prow.appendChild(b);
+    });
+    const applyB=el("button","fbtn","Apply anim");
+    applyB.onclick=()=>{animSrc=ta.value;fps=Math.min(24,Math.max(1,parseInt(fpsIn.value||"6",10)));applyAnim()};
+    prow.appendChild(applyB);
+    card.appendChild(prow);
+    const act=el("div","strow");
+    const saveB=el("button","green","Save bunny");
+    saveB.onclick=()=>{localStorage.setItem("vb_bunny",JSON.stringify({frames:frames,fps:fps,anim:animSrc}));toast("bunny saved — he is yours now")};
+    const resetB=el("button","mini","Reset");
+    resetB.onclick=()=>{frames=[DEF.slice()];fi=0;efi=0;animSrc=DEFANIM;fps=6;ta.value=animSrc;fpsIn.value=6;localStorage.removeItem("vb_bunny");applyAnim();syncEditor();repaintMain()};
+    const closeB=el("button","mini","Close");
+    closeB.onclick=()=>m.classList.add("hidden");
+    act.append(saveB,resetB,closeB);
+    card.appendChild(act);
+    m.appendChild(card);
+    let drawing=false;
+    function stroke(e){
+      const r=ec.getBoundingClientRect();
+      const grid=frames[efi];
+      const cw=r.width/grid[0].length,ch=r.height/grid.length;
+      const x=Math.floor((e.clientX-r.left)/cw),y=Math.floor((e.clientY-r.top)/ch);
+      if(y<0||y>=grid.length||x<0||x>=grid[0].length)return;
+      grid[y]=grid[y].slice(0,x)+tool+grid[y].slice(x+1);
+      paint(ec,10,grid);paint(prevCv,6,grid);repaintMain();
+    }
+    ec.addEventListener("mousedown",e=>{drawing=true;stroke(e)});
+    ec.addEventListener("mousemove",e=>{if(drawing)stroke(e)});
+    addEventListener("mouseup",()=>{drawing=false});
+    ec.addEventListener("touchstart",e=>{e.preventDefault();stroke(e.touches[0])},{passive:false});
+    ec.addEventListener("touchmove",e=>{e.preventDefault();stroke(e.touches[0])},{passive:false});
+    function syncFrames(){
+      frow.innerHTML="";
+      frames.forEach((_,i)=>{
+        const b=el("button","fbtn"+(i===efi?" on":""),"F"+(i+1));
+        b.onclick=()=>{efi=i;syncFrames();paint(ec,10,frames[efi]);paint(prevCv,6,frames[efi])};
+        frow.appendChild(b);
+      });
+      const add=el("button","fbtn","+ frame");
+      add.onclick=()=>{frames.push(frames[efi].slice());efi=frames.length-1;syncFrames();paint(ec,10,frames[efi]);paint(prevCv,6,frames[efi]);applyAnim()};
+      const del=el("button","fbtn","- frame");
+      del.onclick=()=>{if(frames.length>1){frames.splice(efi,1);efi=Math.min(efi,frames.length-1);syncFrames();paint(ec,10,frames[efi]);paint(prevCv,6,frames[efi]);applyAnim()}};
+      frow.append(add,del);
+    }
+    function syncEditor(){paint(ec,10,frames[efi]);paint(prevCv,6,frames[efi]);syncFrames();ta.value=animSrc;fpsIn.value=fps}
+    m._sync=syncEditor;
+    return m;
+  }
+  function openStudio(){
+    if(!modal){modal=build();document.body.appendChild(modal)}
+    modal.classList.remove("hidden");
+    if(modal._sync)modal._sync();
+  }
+  let clicks=0,ct=0;
+  function bump(){
+    const n=Date.now();
+    if(n-ct>2000)clicks=0;
+    ct=n;clicks++;
+    if(clicks>=3){clicks=0;openStudio();toast("bunny studio unlocked")}
+  }
+  document.addEventListener("click",e=>{
+    if(e.target&&(e.target.id==="bunny"||e.target.id==="sbbunny"))bump();
+  });
+  applyAnim();
+  repaintMain();
+})();
