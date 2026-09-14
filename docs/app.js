@@ -28,25 +28,27 @@ function drawBunny(cv,cell){
   }));
   g.shadowBlur=0;
 }
-function drawSpiral(g,W,H,t){
-  const cx=W*0.5,cy=H*0.5,rot=t*0.00004,tilt=0.82;
-  const maxR=Math.min(W,H)*0.44;
+function buildGalaxy(maxR){
+  const S=Math.ceil(maxR*2.3);
+  const c=document.createElement("canvas");c.width=S;c.height=S;
+  const g=c.getContext("2d");
+  const cx=S/2,cy=S/2;
   const rnd=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x)};
   const put=(x,y,s,col)=>{g.fillStyle=col;g.fillRect(x,y,s,s)};
   for(let i=0;i<140;i++){
     const r=maxR*Math.pow(rnd(i+3100),0.6);
-    const th=6.283*rnd(i+3700)+rot*0.5;
+    const th=6.283*rnd(i+3700);
     const a=0.10*(1-r/maxR)+0.03;
-    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r*tilt,1,"rgba(150,160,220,"+a+")");
+    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r,1,"rgba(150,160,220,"+a+")");
   }
-  const barA=rot*1.3+0.9;
+  const barA=0.9;
   for(let i=0;i<150;i++){
     const u=rnd(i+11)*2-1;
     const v=(rnd(i+501)*2-1)*0.16;
     const d=Math.abs(u);
     const x=u*maxR*0.20,y=v*maxR*0.20;
     const xr=cx+x*Math.cos(barA)-y*Math.sin(barA);
-    const yr=cy+(x*Math.sin(barA)+y*Math.cos(barA))*tilt;
+    const yr=cy+x*Math.sin(barA)+y*Math.cos(barA);
     const a=0.55*(1-d*0.75)+0.10;
     const warm=i%7===0?"rgba(255,214,160,":"rgba(246,232,205,";
     put(xr,yr,i%5===0?2:1.4,warm+a+")");
@@ -55,16 +57,16 @@ function drawSpiral(g,W,H,t){
     const r=maxR*0.17*Math.pow(rnd(i+907),0.6);
     const th=6.283*rnd(i+1301);
     const a=0.40*(1-r/(maxR*0.18))+0.08;
-    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r*tilt,1.3,"rgba(250,240,220,"+a+")");
+    put(cx+Math.cos(th)*r,cy+Math.sin(th)*r,1.3,"rgba(250,240,220,"+a+")");
   }
   for(let arm=0;arm<2;arm++){
     for(let i=0;i<230;i++){
       const f=i/230;
-      const th=arm*Math.PI+i*0.052+rot;
+      const th=arm*Math.PI+i*0.052;
       const r=maxR*(0.14+0.86*f);
       const spread=(rnd(i+arm*7001)*2-1)*maxR*0.045*(0.35+f);
       const px=Math.cos(th)*r-Math.sin(th)*spread;
-      const py=(Math.sin(th)*r+Math.cos(th)*spread)*tilt;
+      const py=Math.sin(th)*r+Math.cos(th)*spread;
       const clump=i%17===0;
       const bright=i%9===0;
       const col=clump?"rgba(244,114,182,":bright?"rgba(236,228,246,":"rgba(166,170,235,";
@@ -73,20 +75,47 @@ function drawSpiral(g,W,H,t){
     }
   }
   put(cx-1,cy-1,2.4,"rgba(255,244,224,0.85)");
+  return c;
+}
+function buildStarLayer(W,H,par){
+  const c=document.createElement("canvas");c.width=W;c.height=H;
+  const g=c.getContext("2d");
+  const rnd=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x)};
+  for(let i=par;i<140;i+=2){
+    const s=.8+rnd(i+101)*1.4;
+    g.fillStyle="rgba(236,228,246,"+(.5+rnd(i+151)*.5)+")";
+    g.fillRect(rnd(i+1)*W,rnd(i+51)*H,s,s);
+  }
+  return c;
 }
 function initStars(){
   const cv=$("#stars");if(!cv)return;
-  const g=cv.getContext("2d");let W,H,stars=[],shot=null;
-  function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;stars=Array.from({length:140},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.3,p:Math.random()*6.28,s:.5+Math.random()*1.5}))}
-  size();addEventListener("resize",size);
-  (function tick(t){
+  const g=cv.getContext("2d");
+  let W,H,galaxy,starA,starB,shot=null,last=0,rt=null;
+  function build(){
+    W=cv.width=innerWidth;H=cv.height=innerHeight;
+    galaxy=buildGalaxy(Math.min(W,H)*0.44);
+    starA=buildStarLayer(W,H,0);starB=buildStarLayer(W,H,1);
+  }
+  build();
+  addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(build,150)});
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function blit(t){
     g.clearRect(0,0,W,H);
-    for(const s of stars){
-      const a=.25+.6*Math.abs(Math.sin(s.p+t*.001*s.s));
-      g.fillStyle="rgba(236,228,246,"+a+")";
-      g.fillRect(s.x,s.y,s.r,s.r);
-    }
-    drawSpiral(g,W,H,t);
+    const tw=Math.sin(t*.0012);
+    g.globalAlpha=.75+.25*tw;g.drawImage(starA,0,0);
+    g.globalAlpha=.75-.25*tw;g.drawImage(starB,0,0);
+    g.globalAlpha=1;
+    g.save();g.translate(W/2,H/2);g.rotate(t*.00004);g.scale(1,0.82);
+    g.drawImage(galaxy,-galaxy.width/2,-galaxy.height/2);
+    g.restore();
+  }
+  if(reduce){blit(0);return}
+  (function tick(t){
+    requestAnimationFrame(tick);
+    if(t-last<33)return;
+    last=t;
+    blit(t);
     if(!shot&&Math.random()<.004)shot={x:Math.random()*W*.7,y:Math.random()*H*.3,vx:6+Math.random()*4,vy:3+Math.random()*2,life:0};
     if(shot){
       shot.x+=shot.vx;shot.y+=shot.vy;shot.life++;
@@ -94,7 +123,6 @@ function initStars(){
       g.lineWidth=1.5;g.beginPath();g.moveTo(shot.x,shot.y);g.lineTo(shot.x-shot.vx*6,shot.y-shot.vy*6);g.stroke();
       if(shot.life>40||shot.x>W||shot.y>H)shot=null;
     }
-    requestAnimationFrame(tick);
   })(0);
 }
 function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d}
