@@ -23,17 +23,21 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: build distributable
-        run: gradle createDistributable --no-daemon
+      - name: build install dist
+        run: gradle installDist --no-daemon
 
-      - name: package with jpackage
-        run: gradle jpackage --no-daemon
+      - name: package app-image with jpackage
+        run: >
+          jpackage --type app-image
+          --name VibeBridge
+          --vendor VibeBridge
+          --dest build/jpackage
+          --input build/install/vibebridge-desktop/lib
+          --main-jar vibebridge-desktop-1.0.0.jar
+          --main-class vbdesk.Launcher
 
       - uses: actions/upload-artifact@v4
         with:
           name: VibeBridge-Desktop-Windows
-          path: |
-            desktop/build/jpackage/**
-            desktop/build/distributions/**
-          if-no-files-found: warn
+          path: desktop/build/jpackage/**
           retention-days: 30

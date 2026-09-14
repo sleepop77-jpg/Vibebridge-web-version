@@ -22,14 +22,6 @@ javafx {
 }
 
 application {
-    mainClass = 'vbdesk.Main'
-}
-
-// Produces a native Windows installer (.exe) via jpackage.
-// On Windows runners this creates desktop/build/jpackage/VibeBridge-1.0.0.exe
-run {
-    jvmArgs = [
-        '--add-opens', 'javafx.web/javafx.scene.web=ALL-UNNAMED',
-        '--add-opens', 'javafx.web/com.sun.webkit=ALL-UNNAMED'
-    ]
+    // Launcher (not Main) bypasses the JavaFX classpath launch check.
+    mainClass = 'vbdesk.Launcher'
 }
