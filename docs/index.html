@@ -7,8 +7,9 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<canvas id="stars"></canvas>
 <aside id="sb">
-  <div class="sbhead"><canvas id="sbbunny" width="28" height="34"></canvas><span>VibeBridge</span></div>
+  <div class="sbhead"><canvas id="sbbunny" width="28" height="36"></canvas><span>VibeBridge</span></div>
   <button id="newchat" class="sidebtn glow">New chat</button>
   <div class="sbsec">History</div>
   <div id="chatlist" class="chatlist"></div>
@@ -24,7 +25,7 @@
   <label class="chk"><input type="checkbox" id="strict"> strict sentinel mode</label>
   <div class="sbfoot">
     <div class="stats" id="stats"></div>
-    web-native VibeBridge
+    web-native VibeBridge · low orbit
   </div>
 </aside>
 <div id="main">
@@ -45,7 +46,10 @@
   </header>
   <div id="chat">
     <div id="empty">
-      <canvas id="bunny" width="84" height="102"></canvas>
+      <div class="bunnywrap">
+        <div class="orbit"><i></i></div>
+        <canvas id="bunny" width="84" height="108"></canvas>
+      </div>
       <div class="wordmark">Vibe<span>Bridge</span></div>
       <div class="tagline">any AI chat becomes your engineering team</div>
       <div id="tip" class="tip"></div>

@@ -3,7 +3,7 @@ const $$=s=>document.querySelectorAll(s);
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const BUNNY=[".......##..........##.......","......###..........###......",".....####..........####.....",".....#####........#####.....",".....#####........#####.....","......####........####......","......####........####......","......####........####......",".......###........###.......","........##........##........",".........#........#.........","............................",".......##############.......",".....##################.....","....####################....","...######################...","...#####RRR######RRR#####...","...######################...","...############PP########...","...######################...","...######################...",".....##################.....",".......##############.......","......################......","....####################....","...######################...","...######################...","...######################...",".....##################.....",".......##############.......",".......######....######.....","......########..########....","......################......",".......##############......."];
+const BUNNY=[".............YY.............",".............AA.............",".............AA.............",".............HH.............",".........H........H.........",".......H............H.......","......H.##........##.H......",".....H..##........##..H.....","....H...##........##...H....","...H....##........##....H...","...H....##........##....H...","...H....###......###....H...","..H.....############.....H..","..H....##############....H..","..H...################...H..","..H...################...H..","..H...##RR########RR##...H..","..H...##RR########RR##...H..","..H...########PP######...H..","..H...########PP######...H..",".....H################H.....","......H##############H......",".......H............H.......",".........H........H.........","..........GGGGGGGGGG........","........SSSSSSSSSSSS........",".......SSSSSSSSSSSSSS.......","......SSSSSSSSSSSSSSSS......",".....SSSSSSSYYSSSSSSSS......",".....SSSSSSSYYSSSSSSSS......",".....SSSSSSSSSSSSSSSSS......",".....SSSSSSSSSSSSSSSSS......","......SSSSSSSSSSSSSSSS......",".......SSSSS....SSSSS.......",".......SSSSS....SSSSS.......",".......SSSSS....SSSSS......."];
 const BUILTINS=[["Android chat","add a chatgpt-style chat screen to my android app with compose"],["Fix CI","my github actions android build fails, diagnose and fix the gradle files"],["Dark restyle","restyle my app with a pure black theme and green accents"],["New feature","add a settings screen with toggle switches for notifications and dark mode"]];
 const TIPS=["type an idea — get a bridge prompt tuned for your target model","paste any AI reply back here; FILE / EDIT / DELETE blocks parse themselves","tap a file row to preview its diff before pushing","CI red? Fix it compiles the errors into a ready-to-copy fix prompt","this whole app lives in docs/ — it can rebuild itself from a chat","keyboard: Ctrl+K new chat, Ctrl+E export, Ctrl+Shift+V paste","full-file payloads now show a feature checklist before push"];
 let model="QWEN STUDIO",tipIx=0,pendingOps=null;
@@ -15,8 +15,41 @@ function loadAll(){
   try{const s=JSON.parse(localStorage.getItem("vb")||"null");if(s){$("#pat").value=s.p||"";$("#repo").value=s.r||"";$("#branch").value=s.b||"main";setConn(s.p,s.r,s.b);$("#connstatus").textContent="saved connection loaded";$("#connbadge").className="badge on";$("#connbadge").textContent=s.r}}catch(e){}
 }
 function toast(msg){const t=$("#toast");if(!t)return;t.textContent=msg;t.classList.remove("hidden");t.classList.add("show");setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.add("hidden"),300)},2200)}
-function confetti(){const c=$("#confetti");if(!c)return;const colors=["#2f9e77","#d9a13b","#e5484d","#e8eaed","#818cf8","#f472b6"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top="-10px";d.style.background=colors[i%colors.length];d.style.animationDelay=(Math.random()*.5)+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>{c.innerHTML=""},2000)}
-function drawBunny(cv,cell){const g=cv.getContext("2d");if(!cv)return;cv.width=BUNNY[0].length*cell;cv.height=BUNNY.length*cell;BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{if(ch==="#")g.fillStyle="#e8eaed";else if(ch==="R")g.fillStyle="#ff4d4d";else if(ch==="P")g.fillStyle="#ffb6c1";else return;g.fillRect(x*cell,y*cell,cell,cell)}))}
+function confetti(){const c=$("#confetti");if(!c)return;const colors=["#7c6cf0","#67e8f9","#f472b6","#fde047","#e6ebff","#4f8df7"];for(let i=0;i<40;i++){const d=document.createElement("div");d.className="confetto";d.style.left=Math.random()*100+"vw";d.style.top="-10px";d.style.background=colors[i%colors.length];d.style.animationDelay=(Math.random()*.5)+"s";d.style.animationDuration=(.8+Math.random()*.6)+"s";c.appendChild(d)}setTimeout(()=>{c.innerHTML=""},2000)}
+function drawBunny(cv,cell){
+  const g=cv.getContext("2d");if(!cv)return;
+  cv.width=BUNNY[0].length*cell;cv.height=BUNNY.length*cell;
+  const PAL={"#":"#f4f6ff","R":"#ff4d6d","P":"#ffb6c1","H":"rgba(103,232,249,0.75)","G":"#fbbf24","S":"#c7d2ea","Y":"#fde047","A":"#94a3b8"};
+  const GLOW={"R":"#ff4d6d","Y":"#fde047"};
+  BUNNY.forEach((row,y)=>row.split("").forEach((ch,x)=>{
+    const col=PAL[ch];if(!col)return;
+    g.shadowBlur=GLOW[ch]?6:0;g.shadowColor=GLOW[ch]||"transparent";
+    g.fillStyle=col;g.fillRect(x*cell,y*cell,cell,cell);
+  }));
+  g.shadowBlur=0;
+}
+function initStars(){
+  const cv=$("#stars");if(!cv)return;
+  const g=cv.getContext("2d");let W,H,stars=[],shot=null;
+  function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;stars=Array.from({length:140},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.3,p:Math.random()*6.28,s:.5+Math.random()*1.5}))}
+  size();addEventListener("resize",size);
+  (function tick(t){
+    g.clearRect(0,0,W,H);
+    for(const s of stars){
+      const a=.25+.6*Math.abs(Math.sin(s.p+t*.001*s.s));
+      g.fillStyle="rgba(230,235,255,"+a+")";
+      g.fillRect(s.x,s.y,s.r,s.r);
+    }
+    if(!shot&&Math.random()<.004)shot={x:Math.random()*W*.7,y:Math.random()*H*.3,vx:6+Math.random()*4,vy:3+Math.random()*2,life:0};
+    if(shot){
+      shot.x+=shot.vx;shot.y+=shot.vy;shot.life++;
+      g.strokeStyle="rgba(167,139,250,"+Math.max(0,1-shot.life/40)+")";
+      g.lineWidth=1.5;g.beginPath();g.moveTo(shot.x,shot.y);g.lineTo(shot.x-shot.vx*6,shot.y-shot.vy*6);g.stroke();
+      if(shot.life>40||shot.x>W||shot.y>H)shot=null;
+    }
+    requestAnimationFrame(tick);
+  })(0);
+}
 function el(tag,cls,html){const d=document.createElement(tag);if(cls)d.className=cls;if(html!=null)d.innerHTML=html;return d}
 function scrollEnd(){const c=$("#chat");if(c)requestAnimationFrame(()=>c.scrollTop=c.scrollHeight)}
 function hideEmpty(){const e=$("#empty");if(e)e.style.display="none"}
@@ -203,6 +236,7 @@ function exportChat(){
   toast("chat exported as markdown");
 }
 loadAll();
+initStars();
 drawBunny($("#bunny"),3);drawBunny($("#sbbunny"),1);
 BUILTINS.forEach(pair=>{
   const c=el("button","chipbtn",pair[0]);c.onclick=()=>{$("#input").value=pair[1];$("#input").focus();autoGrow()};
