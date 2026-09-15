@@ -106,7 +106,7 @@ function initStars(){
   addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(render,150)});
   if(reduce)return;
   setInterval(()=>{
-    if(document.hidden)return;
+    if(document.hidden||document.documentElement.getAttribute("data-theme")==="light")return;
     const d=document.createElement("div");
     d.className="shot";
     d.style.left=Math.random()*70+"vw";

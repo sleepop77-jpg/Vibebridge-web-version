@@ -164,6 +164,32 @@ header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:
 *::-webkit-scrollbar-thumb:hover{background:#e9def7}
 .green,.sendbtn{background-image:radial-gradient(1px 1px at 15% 25%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 45% 65%,rgba(255,255,255,.95) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 70% 30%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 85% 70%,rgba(255,255,255,.85) 50%,transparent 51%),radial-gradient(1px 1px at 25% 80%,rgba(255,255,255,.9) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 60% 15%,rgba(255,255,255,.8) 50%,transparent 51%),radial-gradient(1px 1px at 90% 20%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 8% 60%,rgba(255,255,255,.9) 50%,transparent 51%),linear-gradient(135deg,#1c0c2c,#12061c)}
 .chipbtn,.pill,.mini,.sidebtn.glow{background-image:radial-gradient(1px 1px at 15% 25%,rgba(255,255,255,.9) 50%,transparent 51%),radial-gradient(1px 1px at 45% 65%,rgba(255,255,255,.7) 50%,transparent 51%),radial-gradient(1.5px 1.5px at 70% 30%,rgba(255,255,255,.8) 50%,transparent 51%),radial-gradient(1px 1px at 85% 70%,rgba(255,255,255,.6) 50%,transparent 51%),radial-gradient(1px 1px at 25% 80%,rgba(255,255,255,.7) 50%,transparent 51%),radial-gradient(1px 1px at 60% 15%,rgba(255,255,255,.55) 50%,transparent 51%)}
+:root[data-theme="light"]{--bg:#f6f3fb;--side:rgba(255,255,255,.92);--bubble:rgba(109,74,148,.08);--card:rgba(255,255,255,.95);--line:rgba(60,40,90,.16);--text:#221a30;--dim:#4c4460;--faint:#7d7590;--accent:#6d4a94;--accent2:#157a4a;--red:#c22f4d;--amber:#9a6b15;--code:#efeaf7}
+[data-theme="light"] body{text-shadow:none}
+[data-theme="light"] body::before{background:none}
+[data-theme="light"] #starA,[data-theme="light"] #starB,[data-theme="light"] #galaxy,[data-theme="light"] .shot{display:none}
+[data-theme="light"] .green,[data-theme="light"] .sendbtn{background-image:linear-gradient(135deg,#7b5aa6,#5d3f85);color:#fff;border-color:rgba(60,40,90,.35);box-shadow:0 2px 8px rgba(93,63,133,.25)}
+[data-theme="light"] .wordmark,[data-theme="light"] .sbhead span{color:#221a30}
+[data-theme="light"] .avatar{background:#6d4a94;color:#fff;border-color:rgba(60,40,90,.4)}
+[data-theme="light"] .mini{background:rgba(255,255,255,.7)}
+[data-theme="light"] .modal{background:rgba(240,236,248,.75)}
+[data-theme="light"] .studio h3,[data-theme="light"] .zmd h3,[data-theme="light"] .imgtool h3{color:#221a30}
+[data-theme="light"] .studio .help,[data-theme="light"] .zmd .help,[data-theme="light"] .imgtool .help{color:#7d7590}
+[data-theme="light"] .fbtn{color:#4c4460;border-color:rgba(60,40,90,.3)}
+[data-theme="light"] .stcanvas,[data-theme="light"] .zmdprev{background:#efeaf7;border-color:rgba(60,40,90,.25)}
+[data-theme="light"] .imgdrop{border-color:rgba(109,74,148,.5);color:#6d4a94}
+[data-theme="light"] select{background:#efeaf7;color:#332a44;border-color:rgba(60,40,90,.3)}
+[data-theme="light"] *::-webkit-scrollbar-thumb{background:#c9bce0;border:2px solid rgba(255,255,255,.7)}
+[data-theme="light"] #sb,[data-theme="light"] #chat,[data-theme="light"] .chatlist,[data-theme="light"] .pushlog{scrollbar-color:#c9bce0 transparent}
+[data-theme="light"] .chipbtn,[data-theme="light"] .pill{background:rgba(255,255,255,.7)}
+[data-theme="light"] .orbit{border-color:rgba(109,74,148,.4)}
+[data-theme="light"] .orbit i{background:#6d4a94;box-shadow:0 0 10px rgba(109,74,148,.6)}
+[data-theme="light"] .bunnywrap::before{background:radial-gradient(closest-side,rgba(109,74,148,.18),transparent 70%)}
+[data-theme="light"] kbd{background:rgba(109,74,148,.1)}
+[data-theme="light"] .badge.off{background:rgba(194,47,77,.1);color:#c22f4d}
+[data-theme="light"] .badge.on{background:rgba(21,122,74,.1);color:#157a4a}
+[data-theme="light"] .ck.miss{color:#c22f4d}
+[data-theme="light"] .pushitem .sha,[data-theme="light"] .chatitem.active,[data-theme="light"] a{color:#6d4a94}
 @media(max-width:860px){
   #sb{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .25s;z-index:40;box-shadow:4px 0 20px rgba(0,0,0,.5)}
   body.sbopen #sb{transform:none}

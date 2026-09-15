@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VibeBridge</title>
+<script>try{if(localStorage.getItem("vb_theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -42,6 +43,7 @@
       </div>
     </div>
     <span class="spacer"></span>
+    <button id="themebtn" class="headbtn" title="Toggle light / dark">Light mode</button>
     <button id="clearbtn" class="headbtn" title="Clear this chat">Clear</button>
     <button id="exportbtn" class="headbtn" title="Export chat as markdown">Export</button>
     <div id="connbadge" class="badge off">Not connected</div>
@@ -99,5 +101,8 @@
 <script src="checks.js"></script>
 <script src="app.js"></script>
 <script src="studio.js"></script>
+<script src="zipmd.js"></script>
+<script src="imgpush.js"></script>
+<script src="theme.js"></script>
 </body>
 </html>
