@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body{width:340px;margin:0;font:13px/1.5 -apple-system,"Segoe UI",sans-serif;background:#14101c;color:#ece4f6;padding:14px}
+h1{font-size:14px;margin:0 0 8px;color:#c9b3e8;letter-spacing:1px}
+#state{font-size:11px;color:#8f7fa8;margin-bottom:8px}
+pre{background:#0e0a16;border:1px solid #2c2140;border-radius:8px;padding:8px;max-height:200px;overflow:auto;white-space:pre-wrap;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#b6a6c9}
+button{background:#2a1b45;border:1px solid #4a3a6a;color:#efe6ff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;margin:6px 6px 0 0}
+button:hover{filter:brightness(1.25)}
+label{font-size:11px;color:#8f7fa8;display:block;margin-top:10px}
+input[type=range]{width:100%}
+</style>
+</head>
+<body>
+<h1>VIBE SENTINEL</h1>
+<div id="state">checking…</div>
+<pre id="preview">no reply captured yet</pre>
+<button id="copy">Copy reply</button>
+<button id="bridge">Open in VibeBridge</button>
+<button id="grab">Re-grab from tab</button>
+<label>silence threshold: <span id="sv">3.5</span>s
+<input id="silence" type="range" min="1500" max="9000" step="500" value="3500"></label>
+<script src="popup.js"></script>
+</body>
+</html>

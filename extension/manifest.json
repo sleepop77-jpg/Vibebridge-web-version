@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Vibe Sentinel",
+  "version": "1.0.0",
+  "description": "Watches AI chat tabs, knows when generation stops, notifies you and grabs the reply.",
+  "permissions": ["notifications", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://gemini.google.com/*", "https://claude.ai/*", "https://chat.qwen.ai/*", "https://qwen.ai/*", "https://chat.deepseek.com/*", "https://grok.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Vibe Sentinel" }
+}
