@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Vibe Sentinel",
-  "version": "1.2.0",
-  "description": "Watches AI chat tabs, knows when generation stops, pings you, grabs code blocks and hands them to VibeBridge.",
+  "version": "1.4.0",
+  "description": "Watches AI chat tabs, knows when generation stops, pings you, grabs clean code blocks and hands them to VibeBridge.",
   "permissions": ["notifications", "storage", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
@@ -10,6 +10,11 @@
     {
       "matches": ["https://chatgpt.com/*", "https://gemini.google.com/*", "https://claude.ai/*", "https://chat.qwen.ai/*", "https://qwen.ai/*", "https://chat.deepseek.com/*", "https://grok.com/*"],
       "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://sleepop77-jpg.github.io/Vibebridge-web-version/*"],
+      "js": ["bridgehook.js"],
       "run_at": "document_idle"
     }
   ],

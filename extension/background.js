@@ -1,6 +1,6 @@
-// Vibe Sentinel service worker v1.3: notify, badge, store, inject pre-opened tabs, auto-handoff.
+// Vibe Sentinel service worker v1.4: notify, badge, store, inject, storage-channel handoff.
 var MATCHES=["https://chatgpt.com/*","https://gemini.google.com/*","https://claude.ai/*","https://chat.qwen.ai/*","https://qwen.ai/*","https://chat.deepseek.com/*","https://grok.com/*"];
-var BRIDGE="https://sleepop77-jpg.github.io/Vibebridge-web-version/";
+var BRIDGE_BASE="https://sleepop77-jpg.github.io/Vibebridge-web-version";
 function matchPattern(p,url){
   var m=p.match(/^https:\/\/([^/]+)\/\*$/);
   if(!m)return false;
@@ -15,14 +15,14 @@ function injectAll(){
     });
   });
 }
-function sendToBridge(text,auto){
-  var url=BRIDGE+"#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")+"&n="+Date.now();
-  chrome.tabs.query({url:"https://sleepop77-jpg.github.io/Vibebridge-web-version/*"},function(tabs){
+function handoff(text,auto){
+  chrome.storage.local.set({handoff:{text:text||"",auto:!!auto,ts:Date.now()}});
+  chrome.tabs.query({url:BRIDGE_BASE+"/*"},function(tabs){
     if(tabs&&tabs.length){
-      chrome.tabs.update(tabs[0].id,{url:url,active:true});
+      chrome.tabs.update(tabs[0].id,{active:true});
       if(tabs[0].windowId!=null)chrome.windows.update(tabs[0].windowId,{focused:true});
     }else{
-      chrome.tabs.create({url:url});
+      chrome.tabs.create({url:BRIDGE_BASE+"/#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")});
     }
   });
 }
@@ -44,7 +44,7 @@ chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){
     });
     if(tabId!=null)chrome.action.setBadgeText({tabId:tabId,text:"✓"});
     chrome.storage.local.get(["autoSend"],function(r){
-      if(r.autoSend!==false)sendToBridge(msg.text,true);
+      if(r.autoSend!==false)handoff(msg.text,true);
     });
   }
   sendResponse&&sendResponse({ok:true});

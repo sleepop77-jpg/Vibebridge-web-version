@@ -1,20 +1,20 @@
 var $=function(s){return document.querySelector(s)};
-var BRIDGE="https://sleepop77-jpg.github.io/Vibebridge-web-version/";
-function sendToBridge(text,auto){
-  var url=BRIDGE+"#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")+"&n="+Date.now();
-  chrome.tabs.query({url:"https://sleepop77-jpg.github.io/Vibebridge-web-version/*"},function(tabs){
+var BRIDGE_BASE="https://sleepop77-jpg.github.io/Vibebridge-web-version";
+function handoff(text,auto){
+  chrome.storage.local.set({handoff:{text:text||"",auto:!!auto,ts:Date.now()}});
+  chrome.tabs.query({url:BRIDGE_BASE+"/*"},function(tabs){
     if(tabs&&tabs.length){
-      chrome.tabs.update(tabs[0].id,{url:url,active:true});
+      chrome.tabs.update(tabs[0].id,{active:true});
       if(tabs[0].windowId!=null)chrome.windows.update(tabs[0].windowId,{focused:true});
     }else{
-      chrome.tabs.create({url:url});
+      chrome.tabs.create({url:BRIDGE_BASE+"/#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")});
     }
   });
 }
 function copyAndHandoff(text,btn){
   navigator.clipboard.writeText(text);
   if(btn){var old=btn.textContent;btn.textContent="Copied";setTimeout(function(){btn.textContent=old},1200)}
-  sendToBridge(text,false);
+  handoff(text,false);
   $("#state").textContent="copied + handed to VibeBridge (no auto-send)";
 }
 function renderBlocks(blocks){
@@ -53,7 +53,7 @@ $("#copy").onclick=function(){
 };
 $("#bridge").onclick=function(){
   chrome.storage.local.get(["last"],function(r){
-    if(r.last&&r.last.text)sendToBridge(r.last.text,true);
+    if(r.last&&r.last.text)handoff(r.last.text,true);
   });
 };
 $("#grab").onclick=function(){
