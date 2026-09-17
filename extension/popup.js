@@ -7,7 +7,7 @@ function handoff(text,auto){
       chrome.tabs.update(tabs[0].id,{active:true});
       if(tabs[0].windowId!=null)chrome.windows.update(tabs[0].windowId,{focused:true});
     }else{
-      chrome.tabs.create({url:BRIDGE_BASE+"/#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")});
+      chrome.tabs.create({url:BRIDGE_BASE+"/"});
     }
   });
 }
@@ -15,13 +15,13 @@ function copyAndHandoff(text,btn){
   navigator.clipboard.writeText(text);
   if(btn){var old=btn.textContent;btn.textContent="Copied";setTimeout(function(){btn.textContent=old},1200)}
   handoff(text,false);
-  $("#state").textContent="copied + handed to VibeBridge (no auto-send)";
+  $("#state").textContent="copied + delivered to VibeBridge inbox";
 }
 function renderBlocks(blocks){
   var box=$("#blocks");box.innerHTML="";
   (blocks||[]).forEach(function(b,i){
     var d=document.createElement("div");d.className="blk";
-    var t=document.createElement("div");t.className="bt";t.textContent="code block "+(i+1);
+    var t=document.createElement("div");t.className="bt";t.textContent="code block "+(i+1)+" · "+b.length+" chars";
     var pre=document.createElement("pre");pre.textContent=b.slice(0,600)+(b.length>600?"…":"");
     var btn=document.createElement("button");btn.textContent="Copy block "+(i+1);
     btn.onclick=function(){copyAndHandoff(b,btn)};
@@ -29,10 +29,30 @@ function renderBlocks(blocks){
     box.appendChild(d);
   });
 }
-chrome.storage.local.get(["last","silenceMs","captureMode","soundOn","autoSend"],function(r){
+function renderWatched(map){
+  var box=$("#watched");box.innerHTML="";
+  var keys=Object.keys(map||{});
+  if(!keys.length)return 0;
+  keys.forEach(function(k){
+    var s=map[k];
+    var d=document.createElement("div");d.className="wrow";
+    var sp=document.createElement("span");sp.textContent=s.site+" · "+s.state;
+    var b=document.createElement("button");b.textContent="go";
+    b.onclick=function(){
+      chrome.tabs.update(+k,{active:true});
+      chrome.tabs.get(+k,function(t){if(t&&t.windowId!=null)chrome.windows.update(t.windowId,{focused:true})});
+      window.close();
+    };
+    d.appendChild(sp);d.appendChild(b);box.appendChild(d);
+  });
+  return keys.length;
+}
+chrome.storage.local.get(["last","silenceMs","captureMode","soundOn","autoSend","sessions"],function(r){
+  var n=renderWatched(r.sessions);
+  if(n)$("#state").textContent="watching "+n+" tab(s) in background";
+  else $("#state").textContent="no watched tabs yet — open an AI chat";
   if(r.last){
     $("#preview").textContent=(r.last.text||"").slice(0,3000)||"(empty reply)";
-    $("#state").textContent="last: "+r.last.site+" · "+new Date(r.last.ts).toLocaleTimeString();
     renderBlocks(r.last.blocks);
   }
   if(r.silenceMs){$("#silence").value=r.silenceMs;$("#sv").textContent=(r.silenceMs/1000).toFixed(1)}
@@ -40,11 +60,8 @@ chrome.storage.local.get(["last","silenceMs","captureMode","soundOn","autoSend"]
   if(r.soundOn!==undefined)$("#sound").checked=r.soundOn;
   if(r.autoSend!==undefined)$("#autosend").checked=r.autoSend;
 });
-chrome.tabs.query({active:true,currentWindow:true},function(tabs){
-  chrome.tabs.sendMessage(tabs[0].id,{type:"ping"},function(resp){
-    if(chrome.runtime.lastError||!resp){$("#state").textContent="not watching — click 'Watch this tab now'";return}
-    $("#state").textContent="watching "+resp.site+" · "+resp.state;
-  });
+chrome.storage.onChanged.addListener(function(c){
+  if(c.sessions)renderWatched(c.sessions.newValue);
 });
 $("#copy").onclick=function(){
   chrome.storage.local.get(["last"],function(r){
@@ -60,8 +77,9 @@ $("#grab").onclick=function(){
   chrome.tabs.query({active:true,currentWindow:true},function(tabs){
     chrome.tabs.sendMessage(tabs[0].id,{type:"grab"},function(resp){
       if(resp&&resp.text){
-        chrome.storage.local.set({last:{site:"manual",text:resp.text,blocks:[],ts:Date.now()}});
+        chrome.storage.local.set({last:{site:"manual",text:resp.text,blocks:resp.blocks||[],ts:Date.now()}});
         $("#preview").textContent=resp.text.slice(0,3000);
+        renderBlocks(resp.blocks);
       }
     });
   });

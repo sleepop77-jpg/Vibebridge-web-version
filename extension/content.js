@@ -1,4 +1,4 @@
-// Vibe Sentinel content script v3: stable completion, ping sound, code-block extraction.
+// Vibe Sentinel content v1.6: heartbeats only; lossless code capture (no DOM surgery).
 (function(){
   if(window.__vibeSentinel)return;
   window.__vibeSentinel=true;
@@ -12,20 +12,32 @@
   };
   var GENERIC=['[class*="message"]','[class*="answer"]','[class*="response"]','[class*="markdown"]','article'];
   var cfg=CFG[SITE]||{stop:['button[aria-label*="top"]','button[class*="stop"]'],reply:GENERIC};
-  var state="idle",quietTimer=null,confirmTimer=null,burst=0,silenceMs=3500,cooldown=0,captureMode="full",emptyTries=0,baseText="",soundOn=true;
-  chrome.storage.local.get(["silenceMs","captureMode","soundOn"],function(r){
-    if(r.silenceMs)silenceMs=r.silenceMs;
-    if(r.captureMode)captureMode=r.captureMode;
-    if(r.soundOn!==undefined)soundOn=r.soundOn;
-  });
-  chrome.storage.onChanged.addListener(function(c){
-    if(c.captureMode)captureMode=c.captureMode.newValue;
-    if(c.silenceMs)silenceMs=c.silenceMs.newValue;
-    if(c.soundOn)soundOn=c.soundOn.newValue;
-  });
+  var captureMode="full",soundOn=true,lastTickSent=0,state="idle",burst=0;
+  chrome.storage.local.get(["captureMode","soundOn"],function(r){if(r.captureMode)captureMode=r.captureMode;if(r.soundOn!==undefined)soundOn=r.soundOn});
+  chrome.storage.onChanged.addListener(function(c){if(c.captureMode)captureMode=c.captureMode.newValue;if(c.soundOn)soundOn=c.soundOn.newValue});
   function q(s){try{return document.querySelector(s)}catch(e){return null}}
   function qa(s){try{return document.querySelectorAll(s)}catch(e){return []}}
   function stopVisible(){return cfg.stop.some(function(s){return !!q(s)})}
+  function send(m){try{chrome.runtime.sendMessage(m)}catch(e){}}
+  function cleanPre(pre){
+    var code=pre.querySelector("code");
+    var t=((code||pre).innerText||"").replace(/\u00a0/g," ");
+    var lines=t.split("\n");
+    var pure=lines.filter(function(l){return /^\d+$/.test(l.trim())});
+    if(pure.length>=3){
+      var prev=-1,keep=[];
+      for(var i=0;i<lines.length;i++){
+        var tr=lines[i].trim();
+        if(/^\d+$/.test(tr)){
+          var n=parseInt(tr,10);
+          if(prev===-1||n===prev+1){prev=n;continue}
+        }
+        keep.push(lines[i]);
+      }
+      lines=keep;
+    }
+    return lines.join("\n").trim();
+  }
   function grabNode(){
     var lists=[cfg.reply,GENERIC];
     for(var L=0;L<lists.length;L++){
@@ -36,22 +48,10 @@
     }
     return null;
   }
-  function cleanPre(pre){
-    var clone=pre.cloneNode(true);
-    var gut=clone.querySelectorAll("[class*='line-number'],[class*='lineno'],[class*='gutter'],[class*='index'],[class*='toolbar'],[class*='header'],[class*='copy'],button");
-    for(var k=0;k<gut.length;k++){if(gut[k].parentNode)gut[k].parentNode.removeChild(gut[k])}
-    var code=clone.querySelector("code");
-    var t=((code||clone).innerText||"").replace(/\u00a0/g," ").trim();
-    return t;
-  }
   function blocksOf(node){
     if(!node)return [];
-    var pres=node.querySelectorAll("pre");
-    var raw=[];
-    for(var j=0;j<pres.length;j++){
-      var t=cleanPre(pres[j]);
-      if(t&&t.length>20)raw.push(t);
-    }
+    var pres=node.querySelectorAll("pre"),raw=[];
+    for(var j=0;j<pres.length;j++){var t=cleanPre(pres[j]);if(t&&t.length>20)raw.push(t)}
     var out=[];
     for(var a=0;a<raw.length;a++){
       var dup=false;
@@ -90,55 +90,24 @@
       });
     }catch(e){}
   }
-  function announce(text){
-    var now=Date.now();
-    if(now-cooldown<2500)return;
-    cooldown=now;
-    var node=grabNode();
-    chrome.runtime.sendMessage({type:"done",site:SITE,text:(text||"").slice(0,20000),blocks:blocksOf(node)});
-    ping();
-    state="idle";burst=0;emptyTries=0;
-  }
-  function armQuiet(){
-    clearTimeout(quietTimer);
-    quietTimer=setTimeout(onSilence,silenceMs);
-  }
-  function onSilence(){
-    if(state!=="generating")return;
-    if(stopVisible()){armQuiet();return}
-    var t1=lastReply();
-    if(!t1){
-      emptyTries++;
-      if(emptyTries<40)armQuiet();
-      else announce("");
-      return;
-    }
-    if(t1===baseText){state="idle";burst=0;return}
-    clearTimeout(confirmTimer);
-    confirmTimer=setTimeout(function(){
-      if(state!=="generating")return;
-      if(stopVisible()){armQuiet();return}
-      var t2=lastReply();
-      if(t2===t1)announce(t2);
-      else armQuiet();
-    },1500);
-  }
-  function enterGenerating(){
-    if(state!=="idle")return;
-    state="generating";emptyTries=0;baseText=lastReply();
-    chrome.runtime.sendMessage({type:"state",site:SITE,state:"generating"});
-    armQuiet();
+  function tick(){
+    var n=Date.now();
+    if(n-lastTickSent<400)return;
+    lastTickSent=n;
+    send({type:"tick",site:SITE});
   }
   var mo=new MutationObserver(function(muts){
     burst+=muts.length;
-    if(state==="idle"&&(stopVisible()||burst>120))enterGenerating();
-    else if(state==="generating"){clearTimeout(confirmTimer);armQuiet();}
+    if(state==="idle"&&(stopVisible()||burst>120)){state="generating";send({type:"state",site:SITE,state:"generating"})}
+    if(state==="generating")tick();
   });
   mo.observe(document.body||document.documentElement,{childList:true,subtree:true,characterData:true});
   setInterval(function(){burst=0},800);
-  setInterval(function(){if(stopVisible()&&state==="idle")enterGenerating()},700);
+  setInterval(function(){if(stopVisible()&&state==="idle"){state="generating";send({type:"state",site:SITE,state:"generating"})}},700);
   chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){
     if(msg.type==="ping")sendResponse({site:SITE,state:state});
-    if(msg.type==="grab")sendResponse({text:lastReply()});
+    if(msg.type==="grab")sendResponse({text:lastReply(),blocks:blocksOf(grabNode()),stop:stopVisible()});
+    if(msg.type==="ping-now"){ping();sendResponse({ok:true})}
+    if(msg.type==="reset"){state="idle";burst=0;sendResponse({ok:true})}
   });
 })();
