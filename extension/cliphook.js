@@ -16,3 +16,14 @@
       navigator.clipboard.writeText=function(t){stash(t);return origWrite(t)};
     }
     var origExec=document.execCommand?document.execCommand.bind(document):null;
+    if(origExec){
+      document.execCommand=function(cmd){
+        if(cmd&&String(cmd).toLowerCase()==="copy"){
+          var ae=document.activeElement;
+          stash(ae&&(ae.value||ae.innerText)||String(window.getSelection()));
+        }
+        return origExec.apply(document,arguments);
+      };
+    }
+  }catch(e){}
+})();

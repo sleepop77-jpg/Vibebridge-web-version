@@ -1,8 +1,9 @@
-// Vibe Sentinel worker v1.6: throttle-proof clocks, session registry, handoff.
+// Vibe Sentinel worker v1.8: injects cliphook (MAIN world), grabs blocks via copy-button interception.
 var MATCHES=["https://chatgpt.com/*","https://gemini.google.com/*","https://claude.ai/*","https://chat.qwen.ai/*","https://qwen.ai/*","https://chat.deepseek.com/*","https://grok.com/*"];
 var BRIDGE_BASE="https://sleepop77-jpg.github.io/Vibebridge-web-version";
 var SILENCE=3500;
 var sessions={};
+var clipInjected={};
 chrome.storage.local.get(["silenceMs"],function(r){if(r.silenceMs)SILENCE=r.silenceMs});
 chrome.storage.onChanged.addListener(function(c){if(c.silenceMs)SILENCE=c.silenceMs.newValue});
 function matchPattern(p,url){
@@ -15,9 +16,16 @@ function injectAll(){
     (tabs||[]).forEach(function(t){
       if(t.id!=null&&t.url&&MATCHES.some(function(m){return matchPattern(m,t.url)})){
         chrome.scripting.executeScript({target:{tabId:t.id},files:["content.js"]},function(){void chrome.runtime.lastError});
+        chrome.scripting.executeScript({target:{tabId:t.id},files:["cliphook.js"],world:"MAIN"},function(){void chrome.runtime.lastError});
+        if(t.id!=null)clipInjected[t.id]=true;
       }
     });
   });
+}
+function ensureClip(tabId){
+  if(clipInjected[tabId])return;
+  clipInjected[tabId]=true;
+  chrome.scripting.executeScript({target:{tabId:tabId},files:["cliphook.js"],world:"MAIN"},function(){void chrome.runtime.lastError});
 }
 function badge(tabId,t){chrome.action.setBadgeText({tabId:tabId,text:t},function(){void chrome.runtime.lastError})}
 function persistSessions(){
@@ -38,7 +46,7 @@ function check(tabId){
     if(!r1.text){
       s.emptyTries=(s.emptyTries||0)+1;
       if(s.emptyTries<40)schedule(tabId,SILENCE);
-      else finish(tabId,r1);
+      else finishWithBlocks(tabId,r1.text,[]);
       return;
     }
     s.t1=r1;
@@ -46,11 +54,24 @@ function check(tabId){
       chrome.tabs.sendMessage(tabId,{type:"grab"},function(r2){
         if(chrome.runtime.lastError||!r2){schedule(tabId,1500);return}
         if(r2.stop){schedule(tabId,1500);return}
-        if(r2.text===s.t1.text)finish(tabId,r2);
+        if(r2.text===s.t1.text){
+          chrome.tabs.sendMessage(tabId,{type:"grabblocks"},function(rb){
+            if(chrome.runtime.lastError||!rb||!rb.blocks||!rb.blocks.length){
+              chrome.tabs.sendMessage(tabId,{type:"grabblocks"},function(rb2){
+                finishWithBlocks(tabId,r2.text,(rb2&&rb2.blocks)||[]);
+              });
+              return;
+            }
+            finishWithBlocks(tabId,r2.text,rb.blocks);
+          });
+        }
         else schedule(tabId,SILENCE);
       });
     },1500);
   });
+}
+function finishWithBlocks(tabId,text,blocks){
+  finish(tabId,{text:text,blocks:blocks||[]});
 }
 function finish(tabId,r){
   var s=sessions[tabId]||{};
@@ -58,15 +79,19 @@ function finish(tabId,r){
   chrome.tabs.sendMessage(tabId,{type:"reset"},function(){void chrome.runtime.lastError});
   chrome.tabs.sendMessage(tabId,{type:"ping-now"},function(){void chrome.runtime.lastError});
   badge(tabId,"✓");
-  chrome.storage.local.set({last:{site:s.site||"AI",text:r.text,blocks:r.blocks||[],ts:Date.now(),tabId:tabId}});
+  var blocks=r.blocks||[];
+  var payload=blocks.length?blocks.join("\n\n"):"";
+  chrome.storage.local.set({last:{site:s.site||"AI",text:r.text,blocks:blocks,payload:payload,ts:Date.now(),tabId:tabId}});
   chrome.notifications.create("vibe-done-"+Date.now(),{
     type:"basic",
     title:"Vibe Sentinel — reply finished",
-    message:(s.site||"AI")+" stopped generating. Delivering to VibeBridge inbox.",
+    message:payload?(blocks.length+" code block(s) → VibeBridge inbox"):"no code blocks found — nothing delivered",
     priority:2
   });
   persistSessions();
-  chrome.storage.local.get(["autoSend"],function(rr){if(rr.autoSend!==false)handoff(r.text,true)});
+  if(payload){
+    chrome.storage.local.get(["autoSend"],function(rr){if(rr.autoSend!==false)handoff(payload,true)});
+  }
 }
 function handoff(text,auto){
   chrome.storage.local.set({handoff:{text:text||"",auto:!!auto,ts:Date.now()}});
@@ -85,6 +110,7 @@ chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){
   var s=sessions[tabId]||(sessions[tabId]={site:msg.site,state:"idle",emptyTries:0});
   if(msg.type==="state"||msg.type==="tick"){
     s.site=msg.site;s.state="generating";s.emptyTries=0;
+    ensureClip(tabId);
     badge(tabId,"…");
     schedule(tabId,SILENCE);
     persistSessions();
@@ -93,6 +119,7 @@ chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){
 });
 chrome.tabs.onRemoved.addListener(function(tabId){
   if(sessions[tabId]){delete sessions[tabId];persistSessions()}
+  delete clipInjected[tabId];
 });
 chrome.runtime.onInstalled.addListener(injectAll);
 chrome.runtime.onStartup.addListener(injectAll);
