@@ -13,7 +13,8 @@ h1{font-size:14px;letter-spacing:1.5px;color:#fff;font-weight:700}
 #state::before{content:"";width:7px;height:7px;border-radius:50%;background:#8f7fa8;box-shadow:0 0 6px #8f7fa8}
 .wrow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:#b6a6c9;background:rgba(123,90,166,.1);border:1px solid rgba(123,90,166,.25);border-radius:8px;padding:4px 8px;margin-bottom:6px}
 .wrow button{padding:2px 8px;font-size:10px;margin:0}
-pre#preview{background:rgba(10,6,18,.7);border:1px solid #2c2140;border-radius:10px;padding:10px;max-height:150px;overflow:auto;white-space:pre-wrap;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#b6a6c9;margin-bottom:10px}
+pre#preview{background:rgba(10,6,18,.7);border:1px solid #2c2140;border-radius:10px;padding:10px;max-height:120px;overflow:auto;white-space:pre-wrap;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#77688c;margin-bottom:4px}
+.readonly{font-size:9.5px;color:#5f5478;margin-bottom:10px}
 .blk{margin:0 0 8px;border:1px solid #2c2140;border-radius:10px;padding:8px;background:rgba(123,90,166,.06)}
 .blk:hover{border-color:#4a3a6a}
 .blk .bt{font-size:9.5px;letter-spacing:1px;text-transform:uppercase;color:#8f7fa8;margin-bottom:4px}
@@ -31,7 +32,6 @@ button.primary{background:linear-gradient(135deg,#7b5aa6,#5d3f85);border-color:t
 .switch span::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#8f7fa8;transition:.2s}
 .switch input:checked+span{background:#4a3a6a}
 .switch input:checked+span::after{left:18px;background:#c9b3e8}
-select{background:#171025;color:#ece4f6;border:1px solid #2c2140;border-radius:7px;padding:4px 8px;font-size:11px}
 input[type=range]{width:100%;accent-color:#7b5aa6}
 .lab{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#8f7fa8;margin:8px 0 4px}
 footer{margin-top:12px;font-size:9.5px;color:#5f5478;text-align:center;letter-spacing:.4px}
@@ -42,27 +42,27 @@ footer{margin-top:12px;font-size:9.5px;color:#5f5478;text-align:center;letter-sp
   <div class="logo">VS</div>
   <div>
     <h1>VIBE SENTINEL</h1>
-    <div class="sub">generation watchdog · bridge handoff</div>
+    <div class="sub">generation watchdog · code-blocks-only handoff</div>
   </div>
 </header>
 <div id="state">checking…</div>
 <div id="watched"></div>
 <pre id="preview">no reply captured yet</pre>
+<div class="readonly">read-only preview · only code blocks can be copied or sent</div>
 <div id="blocks"></div>
 <div class="grid">
-  <button id="copy" class="primary">Copy reply</button>
-  <button id="bridge" class="primary">Send to Bridge</button>
+  <button id="copy" class="primary">Copy code blocks</button>
+  <button id="bridge" class="primary">Send blocks to Bridge</button>
   <button id="grab">Re-grab tab</button>
   <button id="inject">Watch this tab</button>
 </div>
 <div class="panel">
-  <div class="row"><span>capture mode</span><select id="mode"><option value="full">full reply</option><option value="codes">all code blocks</option><option value="lastcode">last code block</option></select></div>
   <div class="row"><span>ping on completion</span><label class="switch"><input type="checkbox" id="sound" checked><span></span></label></div>
-  <div class="row"><span>auto-send to bridge</span><label class="switch"><input type="checkbox" id="autosend" checked><span></span></label></div>
+  <div class="row"><span>auto-send blocks to bridge</span><label class="switch"><input type="checkbox" id="autosend" checked><span></span></label></div>
   <div class="lab">silence threshold · <span id="sv">3.5</span>s</div>
   <input id="silence" type="range" min="1500" max="9000" step="500" value="3500">
 </div>
-<footer>v1.6 · local-only · zero servers</footer>
+<footer>v1.9 · local-only · zero servers · blocks-only</footer>
 <script src="popup.js"></script>
 </body>
 </html>

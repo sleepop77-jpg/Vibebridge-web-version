@@ -354,9 +354,10 @@ document.addEventListener("keydown",e=>{
     var t="";
     try{t=decodeURIComponent(m[1])}catch(e){t=m[1]}
     if(!t)return;
-    var i=$("#input");
-    if(i){i.value=t;autoGrow();toast("payload received from Sentinel")}
-    try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
+     var auto=/auto=1/.test(location.hash);
+     var i=$("#input");
+     if(i){i.value=t;autoGrow();toast("payload received from Sentinel");if(auto&&window.send)setTimeout(function(){window.send()},200)}
+     try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
   }
   addEventListener("hashchange",ingest);
   ingest();

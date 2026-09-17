@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Vibe Sentinel",
-  "version": "1.6.0",
+  "version": "1.9.0",
   "description": "Watches AI chat tabs in background, knows when generation stops, pings, grabs clean code and delivers it into VibeBridge.",
   "permissions": ["notifications", "storage", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],

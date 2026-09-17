@@ -75,7 +75,7 @@
       chunks.push(lh,data);
       var ch=new Uint8Array(46+nb.length),cv=new DataView(ch.buffer);
       cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(10,0,true);
-      cv.setUint16(12,dt,true);cv.setUint14?0:0;cv.setUint16(14,dd,true);cv.setUint32(16,crc,true);
+      cv.setUint16(12,dt,true);cv.setUint16(14,dd,true);cv.setUint32(16,crc,true);
       cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
       cv.setUint16(28,nb.length,true);cv.setUint32(42,offset,true);
       ch.set(nb,46);
