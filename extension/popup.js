@@ -1,38 +1,80 @@
 var $=function(s){return document.querySelector(s)};
-chrome.storage.local.get(["last","silenceMs"],function(r){
+var BRIDGE="https://sleepop77-jpg.github.io/Vibebridge-web-version/";
+function sendToBridge(text){
+  var url=BRIDGE+"#vbpayload="+encodeURIComponent(text)+"&n="+Date.now();
+  chrome.tabs.query({url:"https://sleepop77-jpg.github.io/Vibebridge-web-version/*"},function(tabs){
+    if(tabs&&tabs.length){
+      chrome.tabs.update(tabs[0].id,{url:url,active:true});
+      if(tabs[0].windowId!=null)chrome.windows.update(tabs[0].windowId,{focused:true});
+    }else{
+      chrome.tabs.create({url:url});
+    }
+  });
+}
+function copyAndHandoff(text,btn,label){
+  navigator.clipboard.writeText(text);
+  if(btn){var old=btn.textContent;btn.textContent=label||"Copied";setTimeout(function(){btn.textContent=old},1200)}
+  sendToBridge(text);
+  $("#state").textContent="copied + sent to VibeBridge tab";
+}
+function renderBlocks(blocks){
+  var box=$("#blocks");box.innerHTML="";
+  (blocks||[]).forEach(function(b,i){
+    var d=document.createElement("div");d.className="blk";
+    var t=document.createElement("div");t.className="bt";t.textContent="code block "+(i+1);
+    var pre=document.createElement("pre");pre.textContent=b.slice(0,600)+(b.length>600?"…":"");
+    var btn=document.createElement("button");btn.textContent="Copy block "+(i+1);
+    btn.onclick=function(){copyAndHandoff(b,btn)};
+    d.appendChild(t);d.appendChild(pre);d.appendChild(btn);
+    box.appendChild(d);
+  });
+}
+chrome.storage.local.get(["last","silenceMs","captureMode","soundOn"],function(r){
   if(r.last){
-    $("#preview").textContent=(r.last.text||"").slice(0,4000)||"(empty reply)";
+    $("#preview").textContent=(r.last.text||"").slice(0,3000)||"(empty reply)";
     $("#state").textContent="last: "+r.last.site+" · "+new Date(r.last.ts).toLocaleTimeString();
+    renderBlocks(r.last.blocks);
   }
   if(r.silenceMs){$("#silence").value=r.silenceMs;$("#sv").textContent=(r.silenceMs/1000).toFixed(1)}
+  if(r.captureMode)$("#mode").value=r.captureMode;
+  if(r.soundOn!==undefined)$("#sound").checked=r.soundOn;
 });
 chrome.tabs.query({active:true,currentWindow:true},function(tabs){
   chrome.tabs.sendMessage(tabs[0].id,{type:"ping"},function(resp){
-    if(chrome.runtime.lastError||!resp){$("#state").textContent="not watching this tab — open an AI chat site";return}
+    if(chrome.runtime.lastError||!resp){$("#state").textContent="not watching — click 'Watch this tab now'";return}
     $("#state").textContent="watching "+resp.site+" · "+resp.state;
   });
 });
 $("#copy").onclick=function(){
   chrome.storage.local.get(["last"],function(r){
-    if(r.last&&r.last.text){navigator.clipboard.writeText(r.last.text);$("#copy").textContent="Copied"}
+    if(r.last&&r.last.text)copyAndHandoff(r.last.text,$("#copy"));
+  });
+};
+$("#bridge").onclick=function(){
+  chrome.storage.local.get(["last"],function(r){
+    if(r.last&&r.last.text)sendToBridge(r.last.text);
   });
 };
 $("#grab").onclick=function(){
   chrome.tabs.query({active:true,currentWindow:true},function(tabs){
     chrome.tabs.sendMessage(tabs[0].id,{type:"grab"},function(resp){
       if(resp&&resp.text){
-        chrome.storage.local.set({last:{site:"manual",text:resp.text,ts:Date.now()}});
-        $("#preview").textContent=resp.text.slice(0,4000);
+        chrome.storage.local.set({last:{site:"manual",text:resp.text,blocks:[],ts:Date.now()}});
+        $("#preview").textContent=resp.text.slice(0,3000);
       }
     });
   });
 };
-$("#bridge").onclick=function(){
-  chrome.storage.local.get(["last"],function(r){
-    var url="https://sleepop77-jpg.github.io/Vibebridge-web-version/#vbpayload="+encodeURIComponent((r.last&&r.last.text)||"");
-    chrome.tabs.create({url:url});
+$("#inject").onclick=function(){
+  chrome.tabs.query({active:true,currentWindow:true},function(tabs){
+    chrome.scripting.executeScript({target:{tabId:tabs[0].id},files:["content.js"]},function(){
+      void chrome.runtime.lastError;
+      $("#state").textContent="injected — watching this tab now";
+    });
   });
 };
+$("#mode").onchange=function(e){chrome.storage.local.set({captureMode:e.target.value})};
+$("#sound").onchange=function(e){chrome.storage.local.set({soundOn:e.target.checked})};
 $("#silence").oninput=function(e){
   $("#sv").textContent=(e.target.value/1000).toFixed(1);
   chrome.storage.local.set({silenceMs:+e.target.value});

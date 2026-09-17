@@ -341,8 +341,23 @@ $("#connect").onclick=async()=>{
 };
 $("#kbshort").onclick=e=>{e.preventDefault();$("#kbmodal").classList.remove("hidden")};
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){$$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
+  if(e.key==="Escape"){$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
   if(e.ctrlKey&&e.key==="k"){e.preventDefault();newChat();toast("new chat")}
   if(e.ctrlKey&&e.key==="e"){e.preventDefault();exportChat()}
   if(e.ctrlKey&&e.shiftKey&&e.key==="V"){e.preventDefault();$("#paste").click()}
 });
+// Sentinel handoff: #vbpayload=... auto-fills the composer (hashchange = no reload).
+(function(){
+  function ingest(){
+    var m=(location.hash||"").match(/vbpayload=([^&]*)/);
+    if(!m)return;
+    var t="";
+    try{t=decodeURIComponent(m[1])}catch(e){t=m[1]}
+    if(!t)return;
+    var i=$("#input");
+    if(i){i.value=t;autoGrow();toast("payload received from Sentinel")}
+    try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
+  }
+  addEventListener("hashchange",ingest);
+  ingest();
+})();
