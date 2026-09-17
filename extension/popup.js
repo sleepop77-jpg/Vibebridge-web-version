@@ -1,7 +1,7 @@
 var $=function(s){return document.querySelector(s)};
 var BRIDGE="https://sleepop77-jpg.github.io/Vibebridge-web-version/";
-function sendToBridge(text){
-  var url=BRIDGE+"#vbpayload="+encodeURIComponent(text)+"&n="+Date.now();
+function sendToBridge(text,auto){
+  var url=BRIDGE+"#vbpayload="+encodeURIComponent(text||"")+(auto?"&auto=1":"")+"&n="+Date.now();
   chrome.tabs.query({url:"https://sleepop77-jpg.github.io/Vibebridge-web-version/*"},function(tabs){
     if(tabs&&tabs.length){
       chrome.tabs.update(tabs[0].id,{url:url,active:true});
@@ -11,11 +11,11 @@ function sendToBridge(text){
     }
   });
 }
-function copyAndHandoff(text,btn,label){
+function copyAndHandoff(text,btn){
   navigator.clipboard.writeText(text);
-  if(btn){var old=btn.textContent;btn.textContent=label||"Copied";setTimeout(function(){btn.textContent=old},1200)}
-  sendToBridge(text);
-  $("#state").textContent="copied + sent to VibeBridge tab";
+  if(btn){var old=btn.textContent;btn.textContent="Copied";setTimeout(function(){btn.textContent=old},1200)}
+  sendToBridge(text,false);
+  $("#state").textContent="copied + handed to VibeBridge (no auto-send)";
 }
 function renderBlocks(blocks){
   var box=$("#blocks");box.innerHTML="";
@@ -29,7 +29,7 @@ function renderBlocks(blocks){
     box.appendChild(d);
   });
 }
-chrome.storage.local.get(["last","silenceMs","captureMode","soundOn"],function(r){
+chrome.storage.local.get(["last","silenceMs","captureMode","soundOn","autoSend"],function(r){
   if(r.last){
     $("#preview").textContent=(r.last.text||"").slice(0,3000)||"(empty reply)";
     $("#state").textContent="last: "+r.last.site+" · "+new Date(r.last.ts).toLocaleTimeString();
@@ -38,6 +38,7 @@ chrome.storage.local.get(["last","silenceMs","captureMode","soundOn"],function(r
   if(r.silenceMs){$("#silence").value=r.silenceMs;$("#sv").textContent=(r.silenceMs/1000).toFixed(1)}
   if(r.captureMode)$("#mode").value=r.captureMode;
   if(r.soundOn!==undefined)$("#sound").checked=r.soundOn;
+  if(r.autoSend!==undefined)$("#autosend").checked=r.autoSend;
 });
 chrome.tabs.query({active:true,currentWindow:true},function(tabs){
   chrome.tabs.sendMessage(tabs[0].id,{type:"ping"},function(resp){
@@ -52,7 +53,7 @@ $("#copy").onclick=function(){
 };
 $("#bridge").onclick=function(){
   chrome.storage.local.get(["last"],function(r){
-    if(r.last&&r.last.text)sendToBridge(r.last.text);
+    if(r.last&&r.last.text)sendToBridge(r.last.text,true);
   });
 };
 $("#grab").onclick=function(){
@@ -75,6 +76,7 @@ $("#inject").onclick=function(){
 };
 $("#mode").onchange=function(e){chrome.storage.local.set({captureMode:e.target.value})};
 $("#sound").onchange=function(e){chrome.storage.local.set({soundOn:e.target.checked})};
+$("#autosend").onchange=function(e){chrome.storage.local.set({autoSend:e.target.checked})};
 $("#silence").oninput=function(e){
   $("#sv").textContent=(e.target.value/1000).toFixed(1);
   chrome.storage.local.set({silenceMs:+e.target.value});
