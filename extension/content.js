@@ -1,4 +1,4 @@
-// Vibe Sentinel content v1.8: clicks each block's copy button, captures the intercepted full string.
+// Vibe Sentinel content v1.9: 1500ms between copy clicks + retry for racing clipboard writes.
 (function(){
   if(window.__vibeSentinel)return;
   window.__vibeSentinel=true;
@@ -92,19 +92,30 @@
       }
       var pre=pres[idx++];
       var btn=findCopyBtn(pre);
-      if(!btn){results.push(cleanPre(pre));next();return}
-      var got=null;
-      function onClip(e){got=e.detail}
-      document.addEventListener("vb-clip",onClip);
-      var before=document.documentElement.getAttribute("data-vb-clip-n")||"0";
-      try{btn.click()}catch(e){}
-      setTimeout(function(){
-        document.removeEventListener("vb-clip",onClip);
-        var after=document.documentElement.getAttribute("data-vb-clip-n")||"0";
-        var txt=got!==null?got:(after!==before?document.documentElement.getAttribute("data-vb-clip"):null);
-        results.push(txt&&txt.length>20?txt:cleanPre(pre));
-        next();
-      },700);
+      if(!btn){results.push(cleanPre(pre));setTimeout(next,200);return}
+      var got=null,retries=0;
+      function tryClick(){
+        function onClip(e){got=e.detail}
+        document.addEventListener("vb-clip",onClip);
+        var before=document.documentElement.getAttribute("data-vb-clip-n")||"0";
+        try{btn.click()}catch(e){}
+        setTimeout(function(){
+          document.removeEventListener("vb-clip",onClip);
+          var after=document.documentElement.getAttribute("data-vb-clip-n")||"0";
+          var txt=got!==null?got:(after!==before?document.documentElement.getAttribute("data-vb-clip"):null);
+          if(txt&&txt.length>20){
+            results.push(txt);
+            setTimeout(next,1500);
+          }else if(retries<2){
+            retries++;
+            setTimeout(tryClick,500);
+          }else{
+            results.push(cleanPre(pre));
+            setTimeout(next,200);
+          }
+        },1500);
+      }
+      tryClick();
     }
     next();
   }
