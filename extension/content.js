@@ -1,4 +1,4 @@
-// Vibe Sentinel content v1.9: 1500ms between copy clicks + retry for racing clipboard writes.
+// Vibe Sentinel content v1.10: observer frozen during grab; 1500ms spacing; retry on missed clip.
 (function(){
   if(window.__vibeSentinel)return;
   window.__vibeSentinel=true;
@@ -12,7 +12,7 @@
   };
   var GENERIC=['[class*="message"]','[class*="answer"]','[class*="response"]','[class*="markdown"]','article'];
   var cfg=CFG[SITE]||{stop:['button[aria-label*="top"]','button[class*="stop"]'],reply:GENERIC};
-  var soundOn=true,lastTickSent=0,state="idle",burst=0;
+  var soundOn=true,lastTickSent=0,state="idle",burst=0,grabbing=false;
   chrome.storage.local.get(["soundOn"],function(r){if(r.soundOn!==undefined)soundOn=r.soundOn});
   chrome.storage.onChanged.addListener(function(c){if(c.soundOn)soundOn=c.soundOn.newValue});
   function q(s){try{return document.querySelector(s)}catch(e){return null}}
@@ -79,13 +79,15 @@
     return dedupe(raw);
   }
   function grabBlocksViaCopy(cb){
+    grabbing=true;
     var node=grabNode();
-    if(!node){cb(domBlocks());return}
+    if(!node){grabbing=false;cb(domBlocks());return}
     var pres=node.querySelectorAll("pre");
-    if(!pres.length){cb(domBlocks());return}
+    if(!pres.length){grabbing=false;cb(domBlocks());return}
     var results=[],idx=0;
     function next(){
       if(idx>=pres.length){
+        grabbing=false;
         var clean=results.filter(function(t){return t&&t.length>20});
         cb(clean.length?dedupe(clean):domBlocks());
         return;
@@ -149,13 +151,14 @@
     send({type:"tick",site:SITE});
   }
   var mo=new MutationObserver(function(muts){
+    if(grabbing)return;
     burst+=muts.length;
     if(state==="idle"&&(stopVisible()||burst>120)){state="generating";send({type:"state",site:SITE,state:"generating"})}
     if(state==="generating")tick();
   });
   mo.observe(document.body||document.documentElement,{childList:true,subtree:true,characterData:true});
   setInterval(function(){burst=0},800);
-  setInterval(function(){if(stopVisible()&&state==="idle"){state="generating";send({type:"state",site:SITE,state:"generating"})}},700);
+  setInterval(function(){if(!grabbing&&stopVisible()&&state==="idle"){state="generating";send({type:"state",site:SITE,state:"generating"})}},700);
   chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){
     if(msg.type==="ping")sendResponse({site:SITE,state:state});
     if(msg.type==="grab")sendResponse({text:fullText(),stop:stopVisible()});

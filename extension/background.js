@@ -1,9 +1,10 @@
-// Vibe Sentinel worker v1.8: injects cliphook (MAIN world), grabs blocks via copy-button interception.
+// Vibe Sentinel worker v1.10: zombie timers killed at finish; 8s fragment suppression.
 var MATCHES=["https://chatgpt.com/*","https://gemini.google.com/*","https://claude.ai/*","https://chat.qwen.ai/*","https://qwen.ai/*","https://chat.deepseek.com/*","https://grok.com/*"];
 var BRIDGE_BASE="https://sleepop77-jpg.github.io/Vibebridge-web-version";
 var SILENCE=3500;
 var sessions={};
 var clipInjected={};
+var lastDone={ts:0,text:""};
 chrome.storage.local.get(["silenceMs"],function(r){if(r.silenceMs)SILENCE=r.silenceMs});
 chrome.storage.onChanged.addListener(function(c){if(c.silenceMs)SILENCE=c.silenceMs.newValue});
 function matchPattern(p,url){
@@ -46,7 +47,7 @@ function check(tabId){
     if(!r1.text){
       s.emptyTries=(s.emptyTries||0)+1;
       if(s.emptyTries<40)schedule(tabId,SILENCE);
-      else finishWithBlocks(tabId,r1.text,[]);
+      else finish(tabId,{text:r1.text,blocks:[]});
       return;
     }
     s.t1=r1;
@@ -58,11 +59,11 @@ function check(tabId){
           chrome.tabs.sendMessage(tabId,{type:"grabblocks"},function(rb){
             if(chrome.runtime.lastError||!rb||!rb.blocks||!rb.blocks.length){
               chrome.tabs.sendMessage(tabId,{type:"grabblocks"},function(rb2){
-                finishWithBlocks(tabId,r2.text,(rb2&&rb2.blocks)||[]);
+                finish(tabId,{text:r2.text,blocks:(rb2&&rb2.blocks)||[]});
               });
               return;
             }
-            finishWithBlocks(tabId,r2.text,rb.blocks);
+            finish(tabId,{text:r2.text,blocks:rb.blocks});
           });
         }
         else schedule(tabId,SILENCE);
@@ -70,18 +71,28 @@ function check(tabId){
     },1500);
   });
 }
-function finishWithBlocks(tabId,text,blocks){
-  finish(tabId,{text:text,blocks:blocks||[]});
-}
 function finish(tabId,r){
   var s=sessions[tabId]||{};
   s.state="idle";
+  clearTimeout(s.timer);clearTimeout(s.confirm);
   chrome.tabs.sendMessage(tabId,{type:"reset"},function(){void chrome.runtime.lastError});
   chrome.tabs.sendMessage(tabId,{type:"ping-now"},function(){void chrome.runtime.lastError});
   badge(tabId,"✓");
   var blocks=r.blocks||[];
   var payload=blocks.length?blocks.join("\n\n"):"";
-  chrome.storage.local.set({last:{site:s.site||"AI",text:r.text,blocks:blocks,payload:payload,ts:Date.now(),tabId:tabId}});
+  var now=Date.now();
+  var suppressed=false;
+  if(payload&&lastDone.text&&now-lastDone.ts<8000){
+    if(payload===lastDone.text||(payload.length<lastDone.text.length&&lastDone.text.indexOf(payload.slice(0,80))>=0)){
+      suppressed=true;
+    }
+  }
+  chrome.storage.local.set({last:{site:s.site||"AI",text:r.text,blocks:blocks,payload:payload,ts:now,tabId:tabId}});
+  if(suppressed){
+    persistSessions();
+    return;
+  }
+  if(payload)lastDone={ts:now,text:payload};
   chrome.notifications.create("vibe-done-"+Date.now(),{
     type:"basic",
     title:"Vibe Sentinel — reply finished",
