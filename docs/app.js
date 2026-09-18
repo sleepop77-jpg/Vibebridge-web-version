@@ -173,7 +173,7 @@ function addPromptBubble(text,mod){
   copy.onclick=()=>{navigator.clipboard.writeText(text);toast("prompt copied to clipboard")};
   btns.appendChild(copy);body.appendChild(btns);scrollEnd();
 }
-function compilePrompt(idea){return"You are VibeBridge's code engine, target "+model+".\nUser idea: "+idea+"\n\nReply ONLY with a bridge payload:\nfirst line ===VIBEBRIDGE=== v1 target=android\nthen ===== FILE: path ===== blocks with full content, or ===== EDIT: path ===== with --- FIND / --- REPLACE / --- END hunks.\nNo prose outside blocks."}
+function compilePrompt(idea){return"You are VibeBridge's code engine, target "+model+".\nUser idea: "+idea+"\n\nReply ONLY with a bridge payload:\nfirst line ===VIBEBRIDGE=== v1\nthen ===== FILE: path ===== blocks with full content, or ===== EDIT: path ===== with --- FIND / --- REPLACE / --- END hunks.\nNo prose outside blocks."}
 function previewFor(op){
   if(op.kind==="FILE"){const a=op.content.split("\n");return a.slice(0,8).map(l=>"+ "+l).concat(a.length>8?["+ … "+(a.length-8)+" more lines"]:[])}
   if(op.kind==="EDIT"){const out=[];op.hunks.slice(0,2).forEach(h=>{h.find.split("\n").slice(0,3).forEach(l=>out.push("- "+l));h.replace.split("\n").slice(0,3).forEach(l=>out.push("+ "+l))});return out}

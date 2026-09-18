@@ -1,4 +1,4 @@
-// API MODE v2: normal conversation + automatic payload mode + rolling memory. Isolated.
+// API MODE v3: strict chat vs code modes, few-shot anchoring, no android relics. Isolated.
 (function(){
   if(window.__vbApi)return;
   window.__vbApi=true;
@@ -16,10 +16,21 @@
     groq:{base:"https://api.groq.com/openai/v1",m:"llama-3.3-70b-versatile",ph:"gsk_…"},
     custom:{base:"",m:"model",ph:"key"}
   };
-  var SYSTEM="You are VibeBridge's resident engineer and chat companion inside a personal web workshop.\n"
-   +"Converse normally, warmly and concisely when the user talks, asks questions, or brainstorms.\n"
-   +"When the user asks for code, features, fixes, or repo changes, reply ONLY with a bridge payload: first line ===VIBEBRIDGE=== v1 target=android, then ===== FILE: path ===== blocks with FULL file content, or ===== EDIT: path ===== hunks with --- FIND / --- REPLACE / --- END where FIND quotes exact existing lines. No prose outside blocks in that case.\n"
-   +"Target repo: sleepop77-jpg/Vibebridge-web-version — static site in docs/, chrome extension in extension/, desktop shell in desktop/. The site is zero-build (plain html/css/js on GitHub Pages); never introduce bundlers or servers.";
+  var SYSTEM="You are VibeBridge's AI companion. You have two strict modes.\n\n"
+   +"[CHAT MODE]\n"
+   +"If the user greets you, asks a general question, brainstorms, or makes small talk, reply with normal, concise plain text. Do NOT generate code or payloads.\n"
+   +"Example: User: 'yo' -> Assistant: 'Hey! What are we building today?'\n"
+   +"Example: User: 'how are you?' -> Assistant: 'Doing great, ready to write some code. What do you need?'\n\n"
+   +"[CODE MODE]\n"
+   +"ONLY if the user explicitly asks for code, features, fixes, or file changes, reply with a bridge payload. No conversational text outside the payload.\n"
+   +"Payload format:\n"
+   +"===VIBEBRIDGE=== v1\n"
+   +"===== FILE: path/to/file =====\n"
+   +"(full file content)\n"
+   +"OR\n"
+   +"===== EDIT: path/to/file =====\n"
+   +"--- FIND\n(exact lines)\n--- REPLACE\n(new lines)\n--- END\n\n"
+   +"Context: The target repo is a static web app (docs/), chrome extension (extension/), and JavaFX desktop shell (desktop/). Do not hallucinate Android/iOS files unless specifically requested.";
   var hist=[];
   function connected(){return cfg.on&&!!cfg.key&&!!(cfg.base||PRESETS[cfg.provider].base)}
   function readSSE(resp,onData){
@@ -141,7 +152,7 @@
     m.appendChild(st);
     var card=E("div","apim");
     card.appendChild(E("h3","","AI API"));
-    card.appendChild(E("div","help","talk normally — it chats back. ask for repo changes and it switches to payload mode by itself and the Changes card appears. /clear wipes memory; new chat does too. keys stay in this browser."));
+    card.appendChild(E("div","help","talk normally — it chats back. ask for repo changes and it switches to payload mode by itself. /clear wipes memory."));
     card.appendChild(E("label","","provider"));
     var sel=document.createElement("select");
     Object.keys(PRESETS).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});
@@ -161,7 +172,7 @@
     bi.oninput=function(){cfg.base=bi.value.trim();save()};
     card.appendChild(bi);
     var chk=E("label","apimcheck");
-    var cb=document.createElement("checkbox");cb=document.createElement("input");cb.type="checkbox";cb.checked=!!cfg.on;
+    var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!cfg.on;
     cb.onchange=function(){cfg.on=cb.checked;save();say(cfg.on?"API mode armed — sends route to "+cfg.provider:"API mode off — prompt-only flow")};
     chk.appendChild(cb);chk.appendChild(document.createTextNode("route sends through API"));
     card.appendChild(chk);
