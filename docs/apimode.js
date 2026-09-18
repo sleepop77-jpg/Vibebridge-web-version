@@ -1,4 +1,4 @@
-// API MODE: direct model calls with streaming; replies auto-feed the payload pipeline. Isolated.
+// API MODE v2: normal conversation + automatic payload mode + rolling memory. Isolated.
 (function(){
   if(window.__vbApi)return;
   window.__vbApi=true;
@@ -13,9 +13,14 @@
     openai:{base:"https://api.openai.com/v1",m:"gpt-4o-mini",ph:"sk-…"},
     anthropic:{base:"https://api.anthropic.com",m:"claude-3-5-haiku-latest",ph:"sk-ant-…"},
     gemini:{base:"https://generativelanguage.googleapis.com",m:"gemini-1.5-flash",ph:"AIza…"},
-    groq:{base:"https://api.groq.com/openai/v1",m:"llama-3.1-8b-instant",ph:"gsk_…"},
+    groq:{base:"https://api.groq.com/openai/v1",m:"llama-3.3-70b-versatile",ph:"gsk_…"},
     custom:{base:"",m:"model",ph:"key"}
   };
+  var SYSTEM="You are VibeBridge's resident engineer and chat companion inside a personal web workshop.\n"
+   +"Converse normally, warmly and concisely when the user talks, asks questions, or brainstorms.\n"
+   +"When the user asks for code, features, fixes, or repo changes, reply ONLY with a bridge payload: first line ===VIBEBRIDGE=== v1 target=android, then ===== FILE: path ===== blocks with FULL file content, or ===== EDIT: path ===== hunks with --- FIND / --- REPLACE / --- END where FIND quotes exact existing lines. No prose outside blocks in that case.\n"
+   +"Target repo: sleepop77-jpg/Vibebridge-web-version — static site in docs/, chrome extension in extension/, desktop shell in desktop/. The site is zero-build (plain html/css/js on GitHub Pages); never introduce bundlers or servers.";
+  var hist=[];
   function connected(){return cfg.on&&!!cfg.key&&!!(cfg.base||PRESETS[cfg.provider].base)}
   function readSSE(resp,onData){
     return new Promise(function(res,rej){
@@ -36,55 +41,56 @@
       pump();
     });
   }
-  function callStream(prompt,onDelta){
+  function callStream(messages,onDelta){
     var p=PRESETS[cfg.provider]||PRESETS.custom;
     var base=(cfg.base||p.base).replace(/\/+$/,"");
     var model=cfg.model||p.m;
     if(cfg.provider==="anthropic"){
-      return fetch(base+"/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":cfg.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:model,max_tokens:8000,stream:true,messages:[{role:"user",content:prompt}]})})
+      return fetch(base+"/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":cfg.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:model,max_tokens:8000,stream:true,system:SYSTEM,messages:messages})})
         .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error("HTTP "+r.status+" "+t.slice(0,200))});return readSSE(r,function(d){try{var j=JSON.parse(d);if(j.type==="content_block_delta")onDelta((j.delta&&j.delta.text)||"")}catch(e){}})});
     }
     if(cfg.provider==="gemini"){
-      return fetch(base+"/v1beta/models/"+model+":streamGenerateContent?alt=sse&key="+encodeURIComponent(cfg.key),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})})
+      var gm=[{role:"user",parts:[{text:SYSTEM+"\n\n--- conversation ---\n"}]}];
+      messages.forEach(function(m,i){gm.push({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})});
+      return fetch(base+"/v1beta/models/"+model+":streamGenerateContent?alt=sse&key="+encodeURIComponent(cfg.key),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({contents:gm})})
         .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error("HTTP "+r.status+" "+t.slice(0,200))});return readSSE(r,function(d){try{var j=JSON.parse(d);var c=j.candidates||[];(((c[0]||{}).content||{}).parts||[]).forEach(function(pp){onDelta(pp.text||"")})}catch(e){}})});
     }
     var hdrs={"content-type":"application/json","authorization":"Bearer "+cfg.key};
     if(cfg.provider==="openrouter"){hdrs["HTTP-Referer"]=location.origin;hdrs["X-Title"]="VibeBridge"}
-    return fetch(base+"/chat/completions",{method:"POST",headers:hdrs,body:JSON.stringify({model:model,messages:[{role:"user",content:prompt}],stream:true})})
+    var msgs=[{role:"system",content:SYSTEM}].concat(messages);
+    return fetch(base+"/chat/completions",{method:"POST",headers:hdrs,body:JSON.stringify({model:model,messages:msgs,stream:true})})
       .then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error("HTTP "+r.status+" "+t.slice(0,200))});return readSSE(r,function(d){if(d==="[DONE]")return;try{var j=JSON.parse(d);var ch=(j.choices||[])[0];onDelta((ch&&ch.delta&&ch.delta.content)||"")}catch(e){}})});
-  }
-  function promptFor(idea){
-    return "You are VibeBridge's code engine, target "+(cfg.model||PRESETS[cfg.provider].m)+".\nUser idea: "+idea+"\n\nReply ONLY with a bridge payload:\nfirst line ===VIBEBRIDGE=== v1 target=android\nthen ===== FILE: path ===== blocks with full content, or ===== EDIT: path ===== with --- FIND / --- REPLACE / --- END hunks.\nNo prose outside blocks.";
   }
   var ISPAY=/===VIBEBRIDGE===|===== (FILE|EDIT|DELETE):/;
   function apiSend(){
     var i=document.querySelector("#input");if(!i)return;
     var t=i.value.trim();if(!t)return;
     i.value="";if(window.autoGrow)autoGrow();
+    if(t==="/clear"){hist=[];if(window.addNoteBubble)addNoteBubble("conversation memory cleared",false);return}
     if(ISPAY.test(t)){if(window.send)send();return}
     if(window.addUserBubble)addUserBubble(t,false);
     if(window.pushMsg)pushMsg({type:"user",text:t,isCode:false});
-    var p=promptFor(t);
-    if(window.addPromptBubble)addPromptBubble(p,cfg.model||"API");
-    if(window.pushMsg)pushMsg({type:"prompt",text:p,model:cfg.model||"API"});
+    hist.push({role:"user",content:t});
+    if(hist.length>16)hist=hist.slice(-16);
     var body=window.assistantRow?assistantRow():null;
     var pre=null;
     if(body){
-      body.appendChild(el("div","alabel","API · "+(cfg.model||PRESETS[cfg.provider].m)+" · streaming"));
-      pre=el("pre","prompttext");pre.textContent="…";body.appendChild(pre);
+      body.appendChild(el("div","alabel","API · "+(cfg.model||PRESETS[cfg.provider].m)));
+      pre=el("pre","prompttext");pre.style.whiteSpace="pre-wrap";pre.textContent="…";body.appendChild(pre);
     }
     var full="";
-    callStream(p,function(d){
+    callStream(hist.slice(),function(d){
       full+=d;
       if(pre){pre.textContent=full;pre.scrollTop=pre.scrollHeight}
       if(window.scrollEnd)scrollEnd();
     }).then(function(){
+      hist.push({role:"assistant",content:full});
+      if(hist.length>16)hist=hist.slice(-16);
       if(ISPAY.test(full)){
         var inp=document.querySelector("#input");
         if(inp&&window.send){inp.value=full;send()}
-      }else{
-        if(window.addNoteBubble)addNoteBubble("model replied without a bridge payload — full text stays in the streaming bubble above",true);
-        if(window.pushMsg)pushMsg({type:"note",text:"api reply had no payload",bad:true});
+      }else if(window.pushMsg){
+        pushMsg({type:"note",text:full,bad:false});
       }
     }).catch(function(e){
       if(window.addNoteBubble)addNoteBubble("API error: "+e.message,true);
@@ -93,6 +99,7 @@
     });
   }
   document.addEventListener("click",function(e){
+    if(e.target&&e.target.id==="newchat"){hist=[];return}
     if(!connected())return;
     if(e.target&&e.target.id==="send"){e.stopPropagation();e.preventDefault();apiSend()}
   },true);
@@ -134,7 +141,7 @@
     m.appendChild(st);
     var card=E("div","apim");
     card.appendChild(E("h3","","AI API"));
-    card.appendChild(E("div","help","route sends straight to a model: idea → streaming reply → auto-parse → push. keys stay in this browser only. payload pastes still parse locally without calling anything."));
+    card.appendChild(E("div","help","talk normally — it chats back. ask for repo changes and it switches to payload mode by itself and the Changes card appears. /clear wipes memory; new chat does too. keys stay in this browser."));
     card.appendChild(E("label","","provider"));
     var sel=document.createElement("select");
     Object.keys(PRESETS).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o)});
@@ -149,12 +156,12 @@
     var mi=document.createElement("input");mi.value=cfg.model;mi.placeholder=PRESETS[cfg.provider].m;
     mi.oninput=function(){cfg.model=mi.value.trim();save()};
     card.appendChild(mi);
-    card.appendChild(E("label","","base url (custom / override)"));
+    card.appendChild(E("label","","base url (leave blank for preset)"));
     var bi=document.createElement("input");bi.value=cfg.base;bi.placeholder=PRESETS[cfg.provider].base;
     bi.oninput=function(){cfg.base=bi.value.trim();save()};
     card.appendChild(bi);
     var chk=E("label","apimcheck");
-    var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!cfg.on;
+    var cb=document.createElement("checkbox");cb=document.createElement("input");cb.type="checkbox";cb.checked=!!cfg.on;
     cb.onchange=function(){cfg.on=cb.checked;save();say(cfg.on?"API mode armed — sends route to "+cfg.provider:"API mode off — prompt-only flow")};
     chk.appendChild(cb);chk.appendChild(document.createTextNode("route sends through API"));
     card.appendChild(chk);
@@ -171,7 +178,7 @@
     test.onclick=function(){
       if(!connected()){say("fill key and arm the toggle first");return}
       test.textContent="calling…";
-      callStream("reply with the single word: pong",function(){}).then(function(){test.textContent="Test call";say("API reachable — pong")}).catch(function(e){test.textContent="Test call";say("test failed: "+e.message)});
+      callStream([{role:"user",content:"reply with the single word: pong"}],function(){}).then(function(){test.textContent="Test call";say("API reachable — pong")}).catch(function(e){test.textContent="Test call";say("test failed: "+e.message)});
     };
     var close=E("button","apimbtn","Close");
     close.onclick=function(){m.classList.add("hidden")};
