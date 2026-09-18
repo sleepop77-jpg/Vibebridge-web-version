@@ -1,24 +1,53 @@
-// Brand patcher: swaps OS menu-bar glyph + boot mark for logo.svg. Isolated, idempotent, best-effort.
+// Brand v2: circular medallion logo. Guarantees favicon, wraps bunnies with the badge behind them.
 (function(){
   if(window.__vbBrand)return;
   window.__vbBrand=true;
+  var st=document.createElement("style");
+  st.textContent=".vbmark{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none}"
+   +".vbmark-bg{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.14),0 2px 10px rgba(0,0,0,.35)}"
+   +".vbmark canvas{position:relative;z-index:1}";
+  document.head.appendChild(st);
+  function favicon(){
+    if(!document.querySelector('link[rel="icon"]')){
+      var l=document.createElement("link");
+      l.rel="icon";l.type="image/svg+xml";l.href="logo.svg";
+      document.head.appendChild(l);
+    }
+  }
+  function cleanStray(){
+    var sb=document.querySelector(".sbhead");
+    if(sb){
+      var imgs=sb.querySelectorAll('img[src="logo.svg"]');
+      for(var i=0;i<imgs.length;i++)imgs[i].parentNode.removeChild(imgs[i]);
+    }
+  }
+  function wrap(sel,size){
+    var cv=document.querySelector(sel);
+    if(!cv||cv.dataset.medal)return;
+    cv.dataset.medal="1";
+    var mark=document.createElement("span");
+    mark.className="vbmark";
+    mark.style.width=size+"px";mark.style.height=size+"px";
+    var img=document.createElement("img");
+    img.src="logo.svg";img.alt="";img.className="vbmark-bg";
+    cv.parentNode.insertBefore(mark,cv);
+    mark.appendChild(img);
+    mark.appendChild(cv);
+  }
+  favicon();
   var tries=0;
   var iv=setInterval(function(){
     tries++;
+    cleanStray();
+    wrap("#sbbunny",54);
+    wrap("#bunny",150);
     var b=document.querySelector("#vbmenubar .vbbrand");
     if(b&&!b.dataset.logo){
       b.dataset.logo="1";
-      b.innerHTML="<img src='logo.svg' alt='' style='height:18px;width:auto;border-radius:4px'> VibeBridge OS";
+      b.innerHTML="<img src='logo.svg' alt='' style='height:18px;width:18px;border-radius:50%'> VibeBridge OS";
     }
+    var s=document.querySelector("#vboot .vic");
+    if(s)s.outerHTML="<img src='logo.svg' alt='' style='width:56px;height:56px;border-radius:50%'>";
     if(tries>60)clearInterval(iv);
   },300);
-  var t2=0;
-  var iv2=setInterval(function(){
-    t2++;
-    var s=document.querySelector("#vboot .vic");
-    if(s){
-      s.outerHTML="<img src='logo.svg' alt='' style='width:56px;height:auto;border-radius:8px'>";
-      clearInterval(iv2);
-    }else if(t2>25)clearInterval(iv2);
-  },120);
 })();
