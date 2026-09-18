@@ -160,7 +160,7 @@ function updateKeyStats(){
   const e3=$("#ks-ops");if(e3)e3.textContent=no;
   const e4=$("#stats");if(e4)e4.textContent=nc+" chats / "+np+" pushes / "+no+" ops total";
 }
-function addUserBubble(text,isCode){hideEmpty();const d=el("div","msg user"+(isCode?" code":""));d.textContent=isCode?(text.length>500?text.slice(0,500)+"…":text):text;$("#flow").appendChild(d);scrollEnd()}
+function addUserBubble(text,isCode){hideEmpty();const d=el("div","msg user"+(isCode?" code":""));d.textContent=isCode?((text.indexOf("<svg")>=0||text.length<=500)?text:text.slice(0,500)+"…"):text;$("#flow").appendChild(d);scrollEnd()}
 function assistantRow(){hideEmpty();const row=el("div","msg arow");const body=el("div","abody");row.append(el("div","avatar","VB"),body);$("#flow").appendChild(row);scrollEnd();return body}
 function addNoteBubble(text,bad){assistantRow().appendChild(el("div",bad?"note bad":"note",esc(text)))}
 function addPromptBubble(text,mod){
