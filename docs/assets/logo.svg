@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480">
+  <!-- lime field -->
+  <rect width="640" height="480" fill="#A3E112"/>
+  <!-- painter's order: each shape's fill knocks out the strokes behind it -->
+  <g fill="#A3E112" stroke="#FFFFFF" stroke-width="12" stroke-linejoin="miter">
+    <!-- back: the rectangle that will never be allowed to be complete -->
+    <rect x="160" y="150" width="175" height="145"/>
+    <!-- middle: circle eats the rectangle's top-right -->
+    <circle cx="320" cy="167" r="98"/>
+    <!-- front: triangle eats the circle's arc and the rectangle's corner -->
+    <path d="M368 213 L462 360 L270 360 Z"/>
+  </g>
+</svg>
