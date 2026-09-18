@@ -1,14 +1,8 @@
-// Brand v3: fat-stroke medallion; bunny shrunk so the shapes frame him instead of hiding them.
+// Brand v4: favicon + menu-bar/boot mark only. NO bunny medallion; unwraps any old medallion.
 (function(){
-  if(window.__vbBrand)return;
+  if(window.__vbBrand4)return;
+  window.__vbBrand4=true;
   window.__vbBrand=true;
-  var st=document.createElement("style");
-  st.textContent=".vbmark{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none}"
-   +".vbmark-bg{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.14),0 2px 10px rgba(0,0,0,.35)}"
-   +".vbmark canvas{position:relative;z-index:1}"
-   +"#sb .vbmark canvas{width:30px!important;height:38px!important}"
-   +"#empty .vbmark canvas{width:90px!important;height:108px!important}";
-  document.head.appendChild(st);
   function favicon(){
     if(!document.querySelector('link[rel="icon"]')){
       var l=document.createElement("link");
@@ -23,26 +17,21 @@
       for(var i=0;i<imgs.length;i++)imgs[i].parentNode.removeChild(imgs[i]);
     }
   }
-  function wrap(sel,size){
-    var cv=document.querySelector(sel);
-    if(!cv||cv.dataset.medal)return;
-    cv.dataset.medal="1";
-    var mark=document.createElement("span");
-    mark.className="vbmark";
-    mark.style.width=size+"px";mark.style.height=size+"px";
-    var img=document.createElement("img");
-    img.src="logo.svg";img.alt="";img.className="vbmark-bg";
-    cv.parentNode.insertBefore(mark,cv);
-    mark.appendChild(img);
-    mark.appendChild(cv);
+  function unwrap(){
+    var marks=document.querySelectorAll(".vbmark");
+    for(var i=0;i<marks.length;i++){
+      var m=marks[i],p=m.parentNode;
+      if(!p)continue;
+      while(m.firstChild)p.insertBefore(m.firstChild,m);
+      p.removeChild(m);
+    }
   }
   favicon();
   var tries=0;
   var iv=setInterval(function(){
     tries++;
     cleanStray();
-    wrap("#sbbunny",56);
-    wrap("#bunny",190);
+    unwrap();
     var b=document.querySelector("#vbmenubar .vbbrand");
     if(b&&!b.dataset.logo){
       b.dataset.logo="1";
@@ -50,6 +39,6 @@
     }
     var s=document.querySelector("#vboot .vic");
     if(s)s.outerHTML="<img src='logo.svg' alt='' style='width:56px;height:56px;border-radius:50%'>";
-    if(tries>60)clearInterval(iv);
+    if(tries>80)clearInterval(iv);
   },300);
 })();
