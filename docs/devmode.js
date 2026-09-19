@@ -1,4 +1,4 @@
-// DEV MODE v2: toggle lives in the OS menu bar beside the brand (never the sidebar). Split workbench.
+// DEV MODE v4: toggle lives in the OS menu bar, right after File/View/Help. Sidebar stays clean.
 (function(){
   if(window.__vbDev)return;
   window.__vbDev=true;
@@ -14,9 +14,9 @@
   function b64text(s){try{return decodeURIComponent(escape(atob(String(s).replace(/\s/g,""))))}catch(e){try{return atob(String(s).replace(/\s/g,""))}catch(e2){return ""}}}
   function css(){
     var st=document.createElement("style");
-    st.textContent=".vbdevbtn{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em;padding:3px 10px;border-radius:6px;border:1px solid rgba(139,148,158,.45);color:#8b949e;background:transparent;cursor:pointer;margin:0 6px;flex:none}"
-     +".vbdevbtn:hover{color:#e6edf3;border-color:#8b949e}"
-     +".vbdevbtn.on{color:#3fb950;border-color:rgba(63,185,80,.6);background:rgba(63,185,80,.12);box-shadow:0 0 10px rgba(63,185,80,.25)}"
+    st.textContent=".vbdevbtn{font:12px/1 -apple-system,'Segoe UI',Inter,sans-serif;font-weight:600;letter-spacing:.04em;padding:4px 10px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--faint,#8b949e);cursor:pointer;margin:0 2px;flex:none}"
+     +".vbdevbtn:hover{background:rgba(177,186,196,.14);color:var(--text,#e6edf3)}"
+     +".vbdevbtn.on{color:#3fb950;border-color:rgba(63,185,80,.55);background:rgba(63,185,80,.12);box-shadow:0 0 10px rgba(63,185,80,.25)}"
      +"body.vbdev #chat,body.vbdev #composerwrap,body.vbdev .footnote{display:none!important}"
      +"#vbwork{display:none;flex:1;min-height:0;flex-direction:column}"
      +"body.vbdev #vbwork{display:flex}"
@@ -24,31 +24,31 @@
      +".vwtop .t{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--accent,#4493f8);text-transform:uppercase}"
      +".vwbody{flex:1;display:flex;min-height:0}"
      +".vleft{width:46%;min-width:220px;display:flex;flex-direction:column;min-height:0}"
-     +".vleft textarea{flex:1;margin:0;border:none;border-radius:0;background:var(--code,#0d1117);color:var(--text,#e6edf3);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:12px;resize:none;outline:none;white-space:pre;overflow:auto}"
-     +".vdiv{width:6px;cursor:col-resize;background:var(--line,#30363d);flex:none}"
-     +".vdiv:hover{background:var(--accent,#4493f8)}"
+     +".vleft textarea{flex:1;margin:0;border:none;border-radius:0;background:var(--code,#0e0616);color:var(--text,#ece4f6);font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:12px;resize:none;outline:none;white-space:pre;overflow:auto}"
+     +".vdiv{width:6px;cursor:col-resize;background:var(--line,#333);flex:none}"
+     +".vdiv:hover{background:var(--accent,#a678d8)}"
      +".vright{flex:1;min-width:260px;overflow:auto;padding:12px 14px}"
-     +".vsec{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--faint,#6e7681);text-transform:uppercase;margin:12px 0 6px}"
-     +".vop{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line,#30363d);border-radius:6px;margin-bottom:5px;font-size:12px;background:var(--card,#161b22)}"
+     +".vsec{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:var(--faint,#77688c);text-transform:uppercase;margin:12px 0 6px}"
+     +".vop{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line,#333);border-radius:6px;margin-bottom:5px;font-size:12px;background:var(--card,#141414)}"
      +".vop .k{font-size:9.5px;font-weight:700;border-radius:4px;padding:2px 6px;flex:none}"
      +".vop .k.FILE{background:rgba(63,185,80,.18);color:#3fb950}"
      +".vop .k.EDIT{background:rgba(210,153,34,.18);color:#d29922}"
      +".vop .k.DELETE{background:rgba(248,81,73,.18);color:#f85149}"
-     +".vop .p{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--accent,#4493f8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}"
+     +".vop .p{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--accent,#a678d8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}"
      +".vop .v{margin-left:auto;font-size:10px;font-weight:700;flex:none}"
-     +".vop .v.ok{color:#3fb950}.vop .v.miss{color:#f85149}.vop .v.wait{color:#6e7681}"
+     +".vop .v.ok{color:#3fb950}.vop .v.miss{color:#f85149}.vop .v.wait{color:#77688c}"
      +".vwarn{font-size:11px;color:#d29922;border-left:2px solid #d29922;padding-left:8px;margin:4px 0}"
      +".vrow{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}"
-     +".vrow input{flex:1;min-width:120px;background:var(--code,#0d1117);color:var(--text,#e6edf3);border:1px solid var(--line,#30363d);border-radius:6px;padding:6px 9px;font-size:12px}"
-     +".vbtn{border:1px solid rgba(240,246,252,.1);background:#21262d;color:#e6edf3;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}"
-     +".vbtn:hover{background:#30363d}"
-     +".vbtn.pri{background:#238636;color:#fff}"
+     +".vrow input{flex:1;min-width:120px;background:var(--code,#0e0616);color:var(--text,#ece4f6);border:1px solid var(--line,#333);border-radius:6px;padding:6px 9px;font-size:12px}"
+     +".vbtn{border:1px solid var(--line,#333);background:var(--bubble,#2a1b45);color:var(--text,#eee);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}"
+     +".vbtn:hover{filter:brightness(1.2)}"
+     +".vbtn.pri{background:#238636;border-color:transparent;color:#fff}"
      +".vbtn.pri:hover{background:#2ea043}"
      +".vbtn.danger{background:rgba(248,81,73,.15);color:#f85149;border-color:rgba(248,81,73,.4)}"
      +".vstatus{font:11px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#8b949e;white-space:pre-wrap;margin-top:8px}";
     document.head.appendChild(st);
   }
-  var work=null,ops=[],parseTimer=null;
+  var work=null,ops=[],parseTimer=null,mounted=false;
   function build(){
     var w=E("div");w.id="vbwork";
     var top=E("div","vwtop");
@@ -110,7 +110,7 @@
         if(items&&items.length){
           right.appendChild(sec("feature checklist"));
           items.forEach(function(it){
-            right.appendChild(E("div","vwarn",(it.name||it.label||"check")+" — "+(it.path||"")));
+            right.appendChild(E("div","vwarn",(it.name||"check")+" — "+(it.path||"")+(it.ok?"":" (MISSING)")));
           });
         }
       }catch(e){}
@@ -136,8 +136,9 @@
     try{
       var meta=await api("GET","/repos/"+rp[0]+"/"+rp[1]+"/contents/"+op.path);
       var content=b64text(meta.content);
-      var res=window.applyEdit?applyEdit(content,op):null;
-      if(res&&res.ok!==undefined?res.ok:res!=null){vEl.textContent="will apply";vEl.className="v ok"}
+      var h=op.hunks&&op.hunks[0];
+      var res=h?applyEdit(content,h.find,h.replace):null;
+      if(res!=null){vEl.textContent="will apply";vEl.className="v ok"}
       else{vEl.textContent="MISS";vEl.className="v miss"}
     }catch(e){
       if(e&&e.code===404){vEl.textContent="no file";vEl.className="v miss"}
@@ -176,7 +177,7 @@
     for(var i=0;i<6;i++){
       await new Promise(function(r){setTimeout(r,10000)});
       try{
-        var run=await latestRun(rp[0],rp[1],sha);
+        var run=await latestRun();
         if(run){
           if(st)st.textContent="pushed "+sha.slice(0,7)+"\nCI: "+run.status+" / "+(run.conclusion||"running");
           if(run.conclusion)return;
@@ -213,30 +214,40 @@
     if(on&&!work){work=build();var main=document.getElementById("main");if(main)main.appendChild(work)}
     if(on)doParse((document.getElementById("vbpay")||{}).value||"");
   }
-  function mount(){
-    if(document.getElementById("devbtn"))return true;
-    var old=document.getElementById("dev-side");if(old)old.remove();
-    var bar=document.getElementById("vbmenubar");
-    var host=null,ref=null;
-    if(bar){
-      host=bar;
-      var brand=bar.querySelector(".vbbrand");
-      ref=brand?brand.nextSibling:bar.firstChild;
-    }else{
-      var hdr=document.querySelector("#main header");
-      if(hdr){host=hdr;var mw=hdr.querySelector(".modelwrap");ref=mw?mw.nextSibling:hdr.firstChild}
-    }
-    if(!host)return false;
+  function makeBtn(){
     var b=document.createElement("button");
     b.id="devbtn";b.className="vbdevbtn";b.textContent=">_ DEV";b.title="developer workbench";
     b.onclick=function(){setDev(!document.body.classList.contains("vbdev"))};
     if(document.body.classList.contains("vbdev")){b.classList.add("on");b.textContent="DEV ON"}
-    host.insertBefore(b,ref);
+    return b;
+  }
+  function mountBar(){
+    if(document.getElementById("devbtn"))return true;
+    var old=document.getElementById("dev-side");if(old)old.remove();
+    var bar=document.getElementById("vbmenubar");
+    if(!bar)return false;
+    var menus=bar.querySelectorAll(".mb, .vmenubtn");
+    var ref=null;
+    if(menus.length)ref=menus[menus.length-1].nextSibling;
+    else{var brand=bar.querySelector(".vbbrand");ref=brand?brand.nextSibling:bar.firstChild}
+    bar.insertBefore(makeBtn(),ref);
+    return true;
+  }
+  function mountHeader(){
+    if(document.getElementById("devbtn"))return true;
+    var hdr=document.querySelector("#main header");
+    if(!hdr)return false;
+    var mw=hdr.querySelector(".modelwrap");
+    hdr.insertBefore(makeBtn(),mw?mw.nextSibling:hdr.firstChild);
     return true;
   }
   css();
   var tries=0;
-  var iv=setInterval(function(){tries++;if(mount()||tries>50)clearInterval(iv)},200);
-  mount();
+  var iv=setInterval(function(){
+    tries++;
+    if(mountBar()){mounted=true;clearInterval(iv)}
+    else if(tries>40){mounted=mountHeader();clearInterval(iv)}
+  },250);
+  if(mountBar())mounted=true;
   try{if(localStorage.getItem("vb_devmode")==="1")setDev(true)}catch(e){}
 })();
