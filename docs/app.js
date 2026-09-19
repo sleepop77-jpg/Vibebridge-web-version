@@ -280,11 +280,17 @@ function send(){
     const r=parsePayload(t);pendingOps=r.ops;
     if(!r.ops.length){addNoteBubble("no bridge operations found in that paste",true);pushMsg({type:"note",text:"no ops found",bad:true})}
     else{addParseCard(r);pushMsg({type:"parse",count:r.ops.length});updateTitle(currentChat,r.ops[0].path.split("/").pop()+" +"+r.ops.length)}
+  }else if(t==="/format"||t==="format"){
+    addUserBubble(t,false);pushMsg({type:"user",text:t,isCode:false});
+    const p=window.vbBootstrapPrompt?window.vbBootstrapPrompt():"You are my code engine for this project.\nRules: converse normally; when I ask for code or changes, reply ONLY with a VibeBridge bridge payload (===VIBEBRIDGE=== v1, then FILE/EDIT blocks). Paste once; afterwards we just talk.";
+    addPromptBubble(p,model);pushMsg({type:"prompt",text:p,model});
+    addNoteBubble("paste that setup prompt into your AI chat ONCE. after that just discuss your idea with the AI normally — it already knows the payload format. paste its payloads back here and I'll parse, checklist and push.",false);
+    pushMsg({type:"note",text:"format handed off",bad:false});
   }else{
     addUserBubble(t,false);pushMsg({type:"user",text:t,isCode:false});
     updateTitle(currentChat,t);
-    const p=compilePrompt(t);
-    addPromptBubble(p,model);pushMsg({type:"prompt",text:p,model});
+    addNoteBubble("idea logged. discuss it with your AI chat (it has the format from /format); when it replies with a ===VIBEBRIDGE=== payload, paste it here and I'll take it from there.",false);
+    pushMsg({type:"note",text:"idea logged",bad:false});
   }
 }
 function exportChat(){
