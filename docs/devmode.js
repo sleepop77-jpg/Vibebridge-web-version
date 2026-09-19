@@ -1,4 +1,4 @@
-// DEV MODE v4: toggle lives in the OS menu bar, right after File/View/Help. Sidebar stays clean.
+// DEV MODE v5: roaming toggle with visibility proof — menu bar first, never invisible, never orphaned.
 (function(){
   if(window.__vbDev)return;
   window.__vbDev=true;
@@ -48,7 +48,45 @@
      +".vstatus{font:11px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#8b949e;white-space:pre-wrap;margin-top:8px}";
     document.head.appendChild(st);
   }
-  var work=null,ops=[],parseTimer=null,mounted=false;
+  var work=null,ops=[],parseTimer=null,btn=null;
+  function isVisible(el){if(!el||!el.parentNode)return false;var r=el.getBoundingClientRect();return r.width>0&&r.height>0}
+  function makeBtn(){
+    var b=document.createElement("button");
+    b.id="devbtn";b.className="vbdevbtn";b.textContent=">_ DEV";b.title="developer workbench";
+    b.onclick=function(){setDev(!document.body.classList.contains("vbdev"))};
+    if(document.body.classList.contains("vbdev")){b.classList.add("on");b.textContent="DEV ON"}
+    return b;
+  }
+  function barSlot(){
+    var bar=document.getElementById("vbmenubar");if(!bar)return null;
+    var menus=bar.querySelectorAll(".mb, .vmenubtn");
+    var ref=menus.length?menus[menus.length-1].nextSibling:null;
+    if(!ref){var brand=bar.querySelector(".vbbrand");ref=brand?brand.nextSibling:bar.firstChild}
+    return {parent:bar,ref:ref};
+  }
+  function headerSlot(){
+    var hdr=document.querySelector("#main header");if(!hdr)return null;
+    var mw=hdr.querySelector(".modelwrap");
+    return {parent:hdr,ref:mw?mw.nextSibling:hdr.firstChild};
+  }
+  function sbSlot(){
+    var sb=document.getElementById("sb");if(!sb)return null;
+    return {parent:sb,ref:sb.querySelector(".sbfoot")};
+  }
+  function ensure(){
+    if(!btn)btn=makeBtn();
+    if(isVisible(btn))return true;
+    var slots=[barSlot(),headerSlot(),sbSlot()];
+    for(var i=0;i<slots.length;i++){
+      var s=slots[i];if(!s)continue;
+      s.parent.insertBefore(btn,s.ref);
+      if(isVisible(btn)){
+        var old=document.getElementById("dev-side");if(old)old.remove();
+        return true;
+      }
+    }
+    return false;
+  }
   function build(){
     var w=E("div");w.id="vbwork";
     var top=E("div","vwtop");
@@ -209,45 +247,17 @@
   function setDev(on){
     try{localStorage.setItem("vb_devmode",on?"1":"0")}catch(e){}
     document.body.classList.toggle("vbdev",on);
-    var b=document.getElementById("devbtn");
-    if(b){b.classList.toggle("on",on);b.textContent=on?"DEV ON":">_ DEV"}
+    if(btn){btn.classList.toggle("on",on);btn.textContent=on?"DEV ON":">_ DEV"}
     if(on&&!work){work=build();var main=document.getElementById("main");if(main)main.appendChild(work)}
     if(on)doParse((document.getElementById("vbpay")||{}).value||"");
   }
-  function makeBtn(){
-    var b=document.createElement("button");
-    b.id="devbtn";b.className="vbdevbtn";b.textContent=">_ DEV";b.title="developer workbench";
-    b.onclick=function(){setDev(!document.body.classList.contains("vbdev"))};
-    if(document.body.classList.contains("vbdev")){b.classList.add("on");b.textContent="DEV ON"}
-    return b;
-  }
-  function mountBar(){
-    if(document.getElementById("devbtn"))return true;
-    var old=document.getElementById("dev-side");if(old)old.remove();
-    var bar=document.getElementById("vbmenubar");
-    if(!bar)return false;
-    var menus=bar.querySelectorAll(".mb, .vmenubtn");
-    var ref=null;
-    if(menus.length)ref=menus[menus.length-1].nextSibling;
-    else{var brand=bar.querySelector(".vbbrand");ref=brand?brand.nextSibling:bar.firstChild}
-    bar.insertBefore(makeBtn(),ref);
-    return true;
-  }
-  function mountHeader(){
-    if(document.getElementById("devbtn"))return true;
-    var hdr=document.querySelector("#main header");
-    if(!hdr)return false;
-    var mw=hdr.querySelector(".modelwrap");
-    hdr.insertBefore(makeBtn(),mw?mw.nextSibling:hdr.firstChild);
-    return true;
-  }
   css();
-  var tries=0;
+  var ticks=0;
   var iv=setInterval(function(){
-    tries++;
-    if(mountBar()){mounted=true;clearInterval(iv)}
-    else if(tries>40){mounted=mountHeader();clearInterval(iv)}
-  },250);
-  if(mountBar())mounted=true;
+    ticks++;
+    ensure();
+    if(ticks>150)clearInterval(iv);
+  },400);
+  ensure();
   try{if(localStorage.getItem("vb_devmode")==="1")setDev(true)}catch(e){}
 })();
