@@ -1,4 +1,4 @@
-// DEV MODE: split workbench — paste payload left, commit truth right. Chat hidden while active. Isolated.
+// DEV MODE v2: toggle lives in the OS menu bar beside the brand (never the sidebar). Split workbench.
 (function(){
   if(window.__vbDev)return;
   window.__vbDev=true;
@@ -14,7 +14,10 @@
   function b64text(s){try{return decodeURIComponent(escape(atob(String(s).replace(/\s/g,""))))}catch(e){try{return atob(String(s).replace(/\s/g,""))}catch(e2){return ""}}}
   function css(){
     var st=document.createElement("style");
-    st.textContent="body.vbdev #chat,body.vbdev #composerwrap,body.vbdev .footnote{display:none!important}"
+    st.textContent=".vbdevbtn{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em;padding:3px 10px;border-radius:6px;border:1px solid rgba(139,148,158,.45);color:#8b949e;background:transparent;cursor:pointer;margin:0 6px;flex:none}"
+     +".vbdevbtn:hover{color:#e6edf3;border-color:#8b949e}"
+     +".vbdevbtn.on{color:#3fb950;border-color:rgba(63,185,80,.6);background:rgba(63,185,80,.12);box-shadow:0 0 10px rgba(63,185,80,.25)}"
+     +"body.vbdev #chat,body.vbdev #composerwrap,body.vbdev .footnote{display:none!important}"
      +"#vbwork{display:none;flex:1;min-height:0;flex-direction:column}"
      +"body.vbdev #vbwork{display:flex}"
      +".vwtop{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line,#30363d);background:var(--side,#161b22)}"
@@ -45,7 +48,7 @@
      +".vstatus{font:11px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#8b949e;white-space:pre-wrap;margin-top:8px}";
     document.head.appendChild(st);
   }
-  var work=null,ops=[],parseTimer=null,preflight={};
+  var work=null,ops=[],parseTimer=null;
   function build(){
     var w=E("div");w.id="vbwork";
     var top=E("div","vwtop");
@@ -65,7 +68,6 @@
     var right=E("div","vright");right.id="vbright";
     body.appendChild(left);body.appendChild(div);body.appendChild(right);
     w.appendChild(body);
-    // draggable divider
     div.addEventListener("mousedown",function(e){
       e.preventDefault();
       function mv(ev){var r=body.getBoundingClientRect();var pct=((ev.clientX-r.left)/r.width)*100;left.style.width=Math.max(20,Math.min(75,pct))+"%"}
@@ -78,7 +80,7 @@
   function doParse(text){
     var right=document.getElementById("vbright");if(!right)return;
     right.innerHTML="";
-    ops=[];preflight={};
+    ops=[];
     if(!text||!/===VIBEBRIDGE===|===== (FILE|EDIT|DELETE):/.test(text)){
       right.appendChild(sec("waiting"));
       right.appendChild(E("div","vstatus","no payload detected yet.\nleft pane parses automatically."));
@@ -93,7 +95,7 @@
     ops=r.ops;
     right.appendChild(sec("parse · "+ops.length+" op(s)"));
     if(r.warning)right.appendChild(E("div","vwarn",r.warning));
-    ops.forEach(function(op,i){
+    ops.forEach(function(op){
       var row=E("div","vop");
       row.appendChild(E("span","k "+op.kind,op.kind));
       row.appendChild(E("span","p",op.path));
@@ -102,19 +104,17 @@
       right.appendChild(row);
       preflightOp(op,v);
     });
-    // checklist warnings
     if(window.checklistFor){
       try{
         var items=checklistFor(ops);
         if(items&&items.length){
           right.appendChild(sec("feature checklist"));
           items.forEach(function(it){
-            right.appendChild(E("div","vwarn",(it.label||it[0]||"check")+" — "+(it.path||it[1]||"")));
+            right.appendChild(E("div","vwarn",(it.name||it.label||"check")+" — "+(it.path||"")));
           });
         }
       }catch(e){}
     }
-    // commit controls
     right.appendChild(sec("commit"));
     var row=E("div","vrow");
     var msg=document.createElement("input");msg.id="vbmsg";msg.value="feat: web push ("+ops.length+" ops)";
@@ -134,10 +134,10 @@
     if(!rp||!window.api){vEl.textContent="no conn";vEl.className="v wait";return}
     if(op.kind==="FILE"){vEl.textContent="will write";vEl.className="v ok";return}
     try{
-      var meta=await api("GET","/repos/"+rp[0]+"/"+rp[1]++"/contents/"+op.path);
+      var meta=await api("GET","/repos/"+rp[0]+"/"+rp[1]+"/contents/"+op.path);
       var content=b64text(meta.content);
       var res=window.applyEdit?applyEdit(content,op):null;
-      if(res&&res.ok){vEl.textContent="will apply";vEl.className="v ok"}
+      if(res&&res.ok!==undefined?res.ok:res!=null){vEl.textContent="will apply";vEl.className="v ok"}
       else{vEl.textContent="MISS";vEl.className="v miss"}
     }catch(e){
       if(e&&e.code===404){vEl.textContent="no file";vEl.className="v miss"}
@@ -195,10 +195,10 @@
     if(!last){say("no pushed sha in history");return}
     if(st)st.textContent="reverting "+last.sha.slice(0,7)+"…";
     try{
-      var bad=await api("GET","/repos/"+rp[0]+"/"+rp[1]++"/git/commits/"+last.sha);
+      var bad=await api("GET","/repos/"+rp[0]+"/"+rp[1]+"/git/commits/"+last.sha);
       var parentSha=bad.parents&&bad.parents[0]?bad.parents[0].sha:null;
       if(!parentSha){say("cannot revert root commit");return}
-      var parent=await api("GET","/repos/"+rp[0]+"/"+rp[1]++"/git/commits/"+parentSha);
+      var parent=await api("GET","/repos/"+rp[0]+"/"+rp[1]+"/git/commits/"+parentSha);
       var nc=await api("POST","/repos/"+rp[0]+"/"+rp[1]+"/git/commits",{message:"revert: "+last.sha.slice(0,7),tree:parent.tree.sha,parents:[last.sha]});
       await api("PATCH","/repos/"+rp[0]+"/"+rp[1]+"/git/refs/heads/"+branch(),{sha:nc.sha,force:false});
       if(st)st.textContent="reverted → "+nc.sha.slice(0,7);
@@ -208,19 +208,35 @@
   function setDev(on){
     try{localStorage.setItem("vb_devmode",on?"1":"0")}catch(e){}
     document.body.classList.toggle("vbdev",on);
-    var b=document.getElementById("dev-side");
-    if(b)b.classList.toggle("glow",on);
+    var b=document.getElementById("devbtn");
+    if(b){b.classList.toggle("on",on);b.textContent=on?"DEV ON":">_ DEV"}
     if(on&&!work){work=build();var main=document.getElementById("main");if(main)main.appendChild(work)}
     if(on)doParse((document.getElementById("vbpay")||{}).value||"");
   }
-  css();
-  var sb=document.getElementById("sb");
-  if(sb&&!document.getElementById("dev-side")){
-    var b=E("button","sidebtn","Developer mode");
-    b.id="dev-side";
+  function mount(){
+    if(document.getElementById("devbtn"))return true;
+    var old=document.getElementById("dev-side");if(old)old.remove();
+    var bar=document.getElementById("vbmenubar");
+    var host=null,ref=null;
+    if(bar){
+      host=bar;
+      var brand=bar.querySelector(".vbbrand");
+      ref=brand?brand.nextSibling:bar.firstChild;
+    }else{
+      var hdr=document.querySelector("#main header");
+      if(hdr){host=hdr;var mw=hdr.querySelector(".modelwrap");ref=mw?mw.nextSibling:hdr.firstChild}
+    }
+    if(!host)return false;
+    var b=document.createElement("button");
+    b.id="devbtn";b.className="vbdevbtn";b.textContent=">_ DEV";b.title="developer workbench";
     b.onclick=function(){setDev(!document.body.classList.contains("vbdev"))};
-    var foot=sb.querySelector(".sbfoot");
-    sb.insertBefore(b,foot||null);
+    if(document.body.classList.contains("vbdev")){b.classList.add("on");b.textContent="DEV ON"}
+    host.insertBefore(b,ref);
+    return true;
   }
+  css();
+  var tries=0;
+  var iv=setInterval(function(){tries++;if(mount()||tries>50)clearInterval(iv)},200);
+  mount();
   try{if(localStorage.getItem("vb_devmode")==="1")setDev(true)}catch(e){}
 })();
