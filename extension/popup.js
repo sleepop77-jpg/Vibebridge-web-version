@@ -79,18 +79,19 @@ $("#bridge").onclick=function(){
     else $("#state").textContent="no code blocks to send";
   });
 };
-$("#grab").onclick=function(){
-  chrome.tabs.query({active:true,currentWindow:true},function(tabs){
-    chrome.tabs.sendMessage(tabs[0].id,{type:"grab"},function(resp){
-      if(resp){
-        var blocks=resp.blocks||[];
-        chrome.storage.local.set({last:{site:"manual",text:resp.text,blocks:blocks,payload:blocks.join("\n\n"),ts:Date.now()}});
-        $("#preview").textContent=(resp.text||"").slice(0,2500);
-        renderBlocks(blocks);
-      }
-    });
-  });
-};
+ $("#grab").onclick=function(){
+   chrome.tabs.query({active:true,currentWindow:true},function(tabs){
+     chrome.tabs.sendMessage(tabs[0].id,{type:"grab"},function(resp){
+       if(chrome.runtime.lastError||!resp)return;
+       chrome.tabs.sendMessage(tabs[0].id,{type:"grabblocks"},function(rb){
+         var blocks=(rb&&rb.blocks)||[];
+         chrome.storage.local.set({last:{site:"manual",text:resp.text,blocks:blocks,payload:blocks.join("\n\n"),ts:Date.now()}});
+         $("#preview").textContent=(resp.text||"").slice(0,2500);
+         renderBlocks(blocks);
+       });
+     });
+   });
+ };
 $("#inject").onclick=function(){
   chrome.tabs.query({active:true,currentWindow:true},function(tabs){
     chrome.scripting.executeScript({target:{tabId:tabs[0].id},files:["content.js"]},function(){

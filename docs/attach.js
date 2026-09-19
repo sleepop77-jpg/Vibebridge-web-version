@@ -202,17 +202,9 @@
       });
     }
   }
-  function strip(){
-    var z=document.getElementById("zmd-side");if(z)z.remove();
-    Array.prototype.forEach.call(document.querySelectorAll(".sidebtn"),function(b){
-      var t=(b.textContent||"").trim();
-      if(t==="Images"||t==="ZIP to MD")b.remove();
-    });
-    Array.prototype.forEach.call(document.querySelectorAll("#vbdock .vdockbtn"),function(b){
-      var t=b.getAttribute("data-tip")||"";
-      if(t==="Images"||t==="ZIP to MD")b.remove();
-    });
-  }
+   function strip(){
+     // Keep sidebar/dock tools alive so OS dock and context menu stay functional.
+   }
   var st=document.createElement("style");
   st.textContent="#vbplus{width:28px;height:28px;padding:0;font-size:16px;font-weight:700;line-height:1}";
   document.head.appendChild(st);

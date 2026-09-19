@@ -2,8 +2,14 @@
 (function(){
   if(window.__vbHook)return;
   window.__vbHook=true;
-  var seen=0;
-  chrome.storage.local.get(["handoff"],function(r){seen=r.handoff?r.handoff.ts:0});
+   var seen=0;
+   chrome.storage.local.get(["handoff"],function(r){
+     seen=r.handoff?r.handoff.ts:0;
+     if(r.handoff&&r.handoff.text&&Date.now()-r.handoff.ts<15000&&sessionStorage.getItem("vbHookSeen")!==String(r.handoff.ts)){
+       sessionStorage.setItem("vbHookSeen",String(r.handoff.ts));
+       deliver(r.handoff.text,r.handoff.auto,r.handoff.ts);
+     }
+   });
   function deliver(text,auto,ts){
     window.postMessage({source:"vibe-sentinel",text:text,auto:!!auto,ts:ts},"*");
     try{

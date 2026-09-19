@@ -174,10 +174,10 @@
     try{
       var meta=await api("GET","/repos/"+rp[0]+"/"+rp[1]+"/contents/"+op.path);
       var content=b64text(meta.content);
-      var h=op.hunks&&op.hunks[0];
-      var res=h?applyEdit(content,h.find,h.replace):null;
-      if(res!=null){vEl.textContent="will apply";vEl.className="v ok"}
-      else{vEl.textContent="MISS";vEl.className="v miss"}
+       var res=content;
+       for(var hi=0;hi<(op.hunks||[]).length;hi++){var h=op.hunks[hi];var next=applyEdit(res,h.find,h.replace);if(next==null){res=null;break}res=next}
+       if(res!=null){vEl.textContent="will apply";vEl.className="v ok"}
+       else{vEl.textContent="MISS";vEl.className="v miss"}
     }catch(e){
       if(e&&e.code===404){vEl.textContent="no file";vEl.className="v miss"}
       else{vEl.textContent="err";vEl.className="v miss"}

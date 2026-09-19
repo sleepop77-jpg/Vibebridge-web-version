@@ -43,9 +43,10 @@
       box.appendChild(d);
     });
   }
-  function push(text,auto,ts){
-    items.push({text:text,auto:!!auto,ts:ts||Date.now()});
-    save();render();
+   function push(text,auto,ts){
+     items.push({text:text,auto:!!auto,ts:ts||Date.now()});
+     items=items.slice(-10);
+     save();render();
     if(window.toast)toast("payload in Sentinel inbox");
   }
   function build(){

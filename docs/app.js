@@ -348,7 +348,7 @@ $("#connect").onclick=async()=>{
 };
 $("#kbshort").onclick=e=>{e.preventDefault();$("#kbmodal").classList.remove("hidden")};
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
+   if(e.key==="Escape"){$$(".modal:not(.hidden)").forEach(m=>m.classList.add("hidden"));$$(".menu:not(.hidden)").forEach(m=>m.classList.add("hidden"));document.body.classList.remove("sbopen")}
   if(e.ctrlKey&&e.key==="k"){e.preventDefault();newChat();toast("new chat")}
   if(e.ctrlKey&&e.key==="e"){e.preventDefault();exportChat()}
   if(e.ctrlKey&&e.shiftKey&&e.key==="V"){e.preventDefault();$("#paste").click()}
