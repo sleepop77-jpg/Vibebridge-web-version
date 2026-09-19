@@ -78,7 +78,7 @@
     w.appendChild(b);w.appendChild(m);bar.appendChild(w);
   }
   menu("File",[["New chat",click("#newchat")],["Export chat",click("#exportbtn")],["Clear chat",click("#clearbtn")]]);
-  menu("View",[["Toggle theme",click("#themebtn")],["Toggle dock",function(){var d=$("#vbdock");if(d)d.classList.toggle("hidden")}],["Toggle sidebar",click("#sbtoggle")]]);
+   menu("View",[["Toggle theme",click("#themebtn")],["Toggle dock",function(){var d=$("#vbdock");if(d)d.classList.toggle("hidden")}],["Toggle sidebar",click("#sbtoggle")],["Developer options",function(){var b=document.getElementById("vbo-header")||document.getElementById("vbo-side");if(b)b.click();else if(window.toast)toast("Developer options not loaded")}]]);
   menu("Help",[["Keyboard shortcuts",click("#kbshort")],["About VibeBridge OS",function(){if(window.toast)toast("VibeBridge OS · github-flavored desktop")}] ]);
   var right=E("span","vb-right");
   var bell=E("span","vbellwrap");bell.title="notifications";
