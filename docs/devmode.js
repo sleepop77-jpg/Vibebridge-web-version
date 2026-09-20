@@ -251,8 +251,9 @@
     if(on&&!work){work=build();var main=document.getElementById("main");if(main)main.appendChild(work)}
     if(on)doParse((document.getElementById("vbpay")||{}).value||"");
   }
-  css();
-  var ticks=0;
+   window.vbToggleDevChat=function(){setDev(!document.body.classList.contains("vbdev"))};
+   css();
+   var ticks=0;
   var iv=setInterval(function(){
     ticks++;
     ensure();
