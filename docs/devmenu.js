@@ -1,52 +1,25 @@
-// DEVELOPER MENU FIX: reliable Developer chat toggle + correct on/off status.
+// DEVELOPER MENU v3 — reliable Developer chat entry. Uses window.vbDevMode.
 (function(){
  if(window.__vbDevMenuFix)return;
  window.__vbDevMenuFix=true;
  function E(t,c,h){var d=document.createElement(t);if(c)d.className=c;if(h!=null)d.innerHTML=h;return d}
  function say(m){if(window.toast)toast(m);else console.log(m)}
- function isDevOn(){return document.body.classList.contains("vbdev")}
- var oldToggle=window.vbToggleDevChat;
- function internalToggle(force){
+ var existingToggle=window.vbToggleDevChat;
+ function isDevOn(){return window.vbDevMode&&window.vbDevMode.on?window.vbDevMode.on():document.body.classList.contains("vbdev")}
+ function toggleDev(force){
   var target=(typeof force==="boolean")?force:!isDevOn();
-  if(window.vbDevMode&&window.vbDevMode.toggle){
-   try{window.vbDevMode.toggle(target);return}catch(e){}
-  }
-  if(oldToggle&&oldToggle!==toggleDevChat){
-   try{oldToggle()}catch(e){}
-   if(isDevOn()!==target){try{oldToggle()}catch(e){}}
-   return;
-  }
-  var item=document.querySelector("#vbdev-mode-menu .vbdevitem");
-  if(item){
-   item.click();
-   if(isDevOn()!==target)item.click();
-   return;
-  }
-  var btn=document.getElementById("devbtn");
-  if(btn){
-   btn.click();
-   if(isDevOn()!==target)btn.click();
-   return;
-  }
+  if(window.vbDevMode&&window.vbDevMode.toggle){window.vbDevMode.toggle(target);return}
+  if(existingToggle&&existingToggle!==window.vbToggleDevChat){existingToggle(target);return}
   document.body.classList.toggle("vbdev",target);
  }
- function toggleDevChat(){internalToggle()}
- window.vbToggleDevChat=toggleDevChat;
- function closeMenu(el){
-  try{
-   var m=el.closest(".menu,.vbdevmenu");
-   if(m)m.classList.add("hidden");
-  }catch(e){}
- }
+ window.vbToggleDevChat=function(force){toggleDev(force)};
+ function closeMenu(el){try{var m=el.closest(".menu,.vbdevmenu");if(m)m.classList.add("hidden")}catch(e){}}
  function updateLabel(b,on){
   if(!b)return;
   b.title="Developer chat is "+(on?"on":"off");
   var t=b.querySelector(".t");
   if(t){t.textContent="Developer chat · "+(on?"on":"off");return}
-  if(b.childNodes&&b.childNodes.length&&b.childNodes[0].nodeType===3){
-   b.childNodes[0].nodeValue="Developer chat · "+(on?"on":"off");
-   return;
-  }
+  if(b.childNodes&&b.childNodes.length&&b.childNodes[0].nodeType===3){b.childNodes[0].nodeValue="Developer chat · "+(on?"on":"off");return}
   b.textContent="Developer chat · "+(on?"on":"off");
  }
  function makeChatBtn(b){
@@ -55,11 +28,13 @@
   b.onclick=function(e){
    e.stopPropagation();
    closeMenu(b);
-   internalToggle();
+   var target=!isDevOn();
+   toggleDev(target);
    setTimeout(function(){
+    if(target&&!isDevOn()&&window.vbDevMode&&window.vbDevMode.open)window.vbDevMode.open();
     var on=isDevOn();
-    say("developer chat "+(on?"on":"off"));
     updateLabel(b,on);
+    say("developer chat "+(on?"on":"off"));
    },80);
   };
   updateLabel(b,isDevOn());
@@ -87,10 +62,7 @@
    var btns=m.querySelectorAll("button");
    Array.prototype.forEach.call(btns,function(b){
     var txt=(b.textContent||"").replace(/\s+/g," ");
-    if(b.dataset.vbfix==="1"||/developer chat/i.test(txt)){
-     found=true;
-     makeChatBtn(b);
-    }
+    if(b.dataset.vbfix==="1"||/developer chat/i.test(txt)){found=true;makeChatBtn(b)}
    });
    if(!found){
     var cls=m.classList.contains("vbdevmenu")?"vbdevitem":"";
@@ -109,29 +81,15 @@
   var m=E("div","menu hidden");m.id="vbdev-fix-menu";
   var chat=E("button","","Developer chat");
   makeChatBtn(chat);
-  var opt=E("button","","Developer options");
-  opt.onclick=function(e){
-   e.stopPropagation();
-   m.classList.add("hidden");
-   var t=document.getElementById("vbo-header")||document.getElementById("vbo-side")||document.getElementById("vbsp-menu-entry");
-   if(t)t.click();
-   else if(window.vbDevMode&&window.vbDevMode.open)window.vbDevMode.open();
-   else say("developer options not installed");
-  };
   m.appendChild(chat);
-  m.appendChild(opt);
   b.onclick=function(e){e.stopPropagation();m.classList.toggle("hidden")};
-  w.appendChild(b);
-  w.appendChild(m);
+  w.appendChild(b);w.appendChild(m);
   document.addEventListener("click",function(){m.classList.add("hidden")});
   var right=bar.querySelector(".vb-right");
   bar.insertBefore(w,right||null);
   return true;
  }
  var tries=0;
- var iv=setInterval(function(){
-  tries++;
-  if(patchMenus()||createMenu()||tries>200)clearInterval(iv);
- },250);
- window.vbDeveloperChat={toggle:internalToggle,on:isDevOn};
+ var iv=setInterval(function(){tries++;if(patchMenus()||createMenu()||tries>200)clearInterval(iv)},250);
+ window.vbDeveloperChat={toggle:toggleDev,on:isDevOn};
 })();
