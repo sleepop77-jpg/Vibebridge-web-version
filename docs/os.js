@@ -119,7 +119,7 @@
   dbtn("ic-code","Bunny Studio",function(){var b=$("#bunny");if(b){b.click();setTimeout(function(){b.click()},80);setTimeout(function(){b.click()},160)}});
   dbtn("ic-zip","ZIP to MD",function(){var z=document.getElementById("zmd-side");if(z)z.click()});
   dbtn("ic-image","Images",function(){var bs=document.querySelectorAll(".sidebtn");for(var i=0;i<bs.length;i++){if(bs[i].textContent.trim()==="Images"){bs[i].click();return}}});
-  dbtn("ic-inbox","Sentinel inbox",function(){var p=$("#vbinbox-pill");if(p)p.click()});
+   // sentinel inbox removed
   dbtn("ic-moon","Theme",click("#themebtn"));
   document.body.appendChild(dock);
   var tabs=E("div");tabs.id="vtabnav";

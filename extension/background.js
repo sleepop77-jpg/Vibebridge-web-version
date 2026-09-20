@@ -134,16 +134,4 @@ chrome.tabs.onRemoved.addListener(function(tabId){
 });
 chrome.runtime.onInstalled.addListener(injectAll);
 chrome.runtime.onStartup.addListener(injectAll);
-chrome.notifications.onClicked.addListener(function(id){
-  chrome.storage.local.get(["last"],function(r){
-    if(r.last&&r.last.tabId!=null){
-      chrome.tabs.get(r.last.tabId,function(t){
-        if(t&&t.windowId!=null){
-          chrome.windows.update(t.windowId,{focused:true});
-          chrome.tabs.update(r.last.tabId,{active:true});
-        }
-      });
-    }
-    chrome.notifications.clear(id);
-  });
-});
+ // notification click handler removed

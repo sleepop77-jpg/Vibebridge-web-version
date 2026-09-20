@@ -47,7 +47,7 @@
     out.push(["Toggle theme",function(){clickSel("#themebtn")}]);
     out.push(["ZIP to MD",function(){clickSel("#zmd-side")}]);
     out.push(["Images",function(){clickText(".sidebtn","Images")}]);
-    out.push(["Sentinel inbox",function(){clickSel("#vbinbox-pill")}]);
+     // sentinel inbox removed
     out.push(["Export chat",function(){clickSel("#exportbtn")}]);
     out.push(["Keyboard shortcuts",function(){clickSel("#kbshort")}]);
     return out;
