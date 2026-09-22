@@ -225,7 +225,7 @@ async function doPush(body,btn){
   card.append(st,tail,btns);body.appendChild(card);scrollEnd();
   try{
     const commit=await commitOps(pendingOps,"feat: web push ("+pendingOps.length+" ops)");
-     const opsCount=pendingOps.length;pendingOps=null;window.vbPendingOps=null;window.vbPendingOps=null;
+     const opsCount=pendingOps.length;pendingOps=null;window.vbPendingOps=null;window.vbPendingOps=null;window.vbPendingOps=null;
     st.textContent="commit "+commit.sha.slice(0,7)+" — polling CI…";
     let run=null;
     for(let i=0;i<30;i++){
