@@ -208,9 +208,10 @@ function addParseCard(r){
   const push=el("button","green","Push to GitHub");
   push.onclick=()=>doPush(body,push);
   btns.appendChild(push);
-  body.appendChild(btns);
-  if(window.attachChecklist)window.attachChecklist(body,r.ops,push);
-  scrollEnd();
+   body.appendChild(btns);
+   if(window.attachChecklist)window.attachChecklist(body,r.ops,push);
+   if(window.vbBackupFlowCard)window.vbBackupFlowCard(body,r);
+   scrollEnd();
 }
 function addParseCardFromSaved(m){const body=assistantRow();const head=el("div","cardhead");head.appendChild(el("span","alabel","Changes"));head.appendChild(el("span","chip",m.count+" ops (saved)"));body.appendChild(head);scrollEnd()}
 function addPushCardFromSaved(m){const body=assistantRow();const card=el("div","pushcard");card.appendChild(el("div","status "+(m.ok?"good":"bad"),m.ok?"CI passed — "+m.sha.slice(0,7):"CI failed — "+m.sha.slice(0,7)));body.appendChild(card);scrollEnd()}
