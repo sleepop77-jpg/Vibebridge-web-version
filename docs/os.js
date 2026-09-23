@@ -121,7 +121,7 @@
   dbtn("ic-image","Images",function(){var bs=document.querySelectorAll(".sidebtn");for(var i=0;i<bs.length;i++){if(bs[i].textContent.trim()==="Images"){bs[i].click();return}}});
    // sentinel inbox removed
   dbtn("ic-moon","Theme",click("#themebtn"));
-  document.body.appendChild(dock);
+   // dock removed: element is built but never appended to the body
   var tabs=E("div");tabs.id="vtabnav";
   var t1=E("button","vtab on","Conversations");
   var t2=E("button","vtab","Activity");
