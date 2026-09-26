@@ -1,6 +1,4 @@
-// STUDIO OPTIONS v2: credential manager + PAT persistence guard.
-// Fixes: PAT "forgetting" (empty-input overwrite of localStorage, hidden-sidebar inputs
-// never rehydrated) and adds a Test-connection button that explains 401/403 in plain words.
+// STUDIO OPTIONS v3: + Connect button under Copy PAT, sharper/smaller/thinner buttons.
 (function(){
   if(window.__vbStudioOptions)return;
   window.__vbStudioOptions=true;
@@ -35,11 +33,7 @@
   function forgetPat(all){
     userCleared=true;bootPat="";
     try{sessionStorage.setItem("vb_pat_cleared","1")}catch(e){}
-    try{
-      var vb=savedVB();
-      delete vb.p;
-      writeVB(vb);
-    }catch(e){}
+    try{var vb=savedVB();delete vb.p;writeVB(vb)}catch(e){}
     var pi=document.getElementById("pat");
     if(pi)pi.value="";
     if(all){
@@ -69,7 +63,7 @@
   function testConn(){
     if(!testLine)return;
     var p=currentPat();
-    if(!p){testLine.textContent="no token stored — connect first (401 means exactly this: GitHub got no valid credentials)";testLine.style.color="#d29922";return}
+    if(!p){testLine.textContent="no token stored — connect first (401 = GitHub got no valid credentials)";testLine.style.color="#d29922";return}
     testLine.textContent="testing…";testLine.style.color="";
     var ri=document.getElementById("repo");
     var repo=(ri&&ri.value)||savedVB().r||"";
@@ -82,17 +76,35 @@
       testLine.style.color="#3fb950";
     }).catch(function(e){
       var code=e&&e.code;
-      if(code===401)testLine.textContent="HTTP 401 = Bad credentials: token is missing, malformed, expired or revoked. Generate a new PAT and reconnect.";
-      else if(code===403)testLine.textContent="HTTP 403 = token works but is NOT allowed here: missing repo scope / fine-grained repo access / org SSO / rate limit.";
-      else if(code===404)testLine.textContent="HTTP 404 = reachable but repo not visible to this token (private repo without scope, or typo).";
+      if(code===401)testLine.textContent="HTTP 401 = Bad credentials: token missing, malformed, expired or revoked. New PAT + Connect.";
+      else if(code===403)testLine.textContent="HTTP 403 = token works but NOT allowed here: scope / repo access / SSO / rate limit.";
+      else if(code===404)testLine.textContent="HTTP 404 = repo not visible to this token (private without scope, or typo).";
       else testLine.textContent="failed: "+(e&&e.message?e.message:e);
       testLine.style.color="#f85149";
     });
   }
+  function doConnect(){
+    rehydrate();
+    var pi=document.getElementById("pat"),ri=document.getElementById("repo"),bi=document.getElementById("branch");
+    var p=(pi&&pi.value)||"",r=(ri&&ri.value)||"";
+    if(!p){p=prompt("Paste your GitHub PAT:","")||"";if(pi)pi.value=p}
+    if(!r){r=prompt("Repo (owner/name):","")||"";if(ri)ri.value=r}
+    if(!p||!r){say("need PAT and repo to connect");return}
+    if(bi&&!bi.value)bi.value="main";
+    userCleared=false;bootPat=p;
+    try{sessionStorage.removeItem("vb_pat_cleared")}catch(e){}
+    var c=document.getElementById("connect");
+    if(c)c.click();
+    else if(window.setConn){setConn(p,r,(bi&&bi.value)||"main");writeVB({p:p,r:r,b:(bi&&bi.value)||"main"})}
+    say("connecting…");
+    setTimeout(testConn,700);
+    refresh();
+  }
   function build(){
     modal=E("div","modal hidden");
     var card=E("div","modalcard");
-    card.style.maxWidth="500px";
+    card.id="vbso-card";
+    card.style.maxWidth="460px";
     card.appendChild(E("h3","","Options & credentials"));
     var l=E("label","chk");
     remChk=document.createElement("input");
@@ -120,7 +132,7 @@
     };
     card.appendChild(l);
     patLine=E("div","small dim","");
-    patLine.style.margin="8px 0";
+    patLine.style.margin="8px 0 4px";
     card.appendChild(patLine);
     testLine=E("div","small dim","");
     testLine.style.margin="0 0 8px";
@@ -133,6 +145,9 @@
       if(p){navigator.clipboard.writeText(p);say("PAT copied")}else say("no PAT stored");
     }));
     card.appendChild(row);
+    var rowC=E("div","cardbtns");
+    rowC.appendChild(btn("⚡ Connect",doConnect));
+    card.appendChild(rowC);
     var row1=E("div","cardbtns");
     row1.appendChild(btn("Remove saved PAT",function(){forgetPat(false)}));
     row1.appendChild(btn("Remove ALL tokens",function(){
@@ -165,6 +180,14 @@
       b.onclick=function(e){e.stopPropagation();open()};
     }
   }
+  var st=document.createElement("style");
+  st.id="vb-studiooptions-css";
+  st.textContent=""
+   +"#vbso-card button{border-radius:2px!important;padding:2px 9px!important;font-size:10px!important;font-weight:600!important;line-height:1.5!important;min-height:0!important;letter-spacing:.03em}"
+   +"#vbso-card .cardbtns{gap:6px!important;margin-top:6px!important;flex-wrap:wrap}"
+   +"#vbso-card h3{font-size:13px!important}"
+   +"#vbso-card .chk{font-size:11.5px!important}";
+  document.head.appendChild(st);
   bootPat=savedVB().p||"";
   rehydrate();
   var n=0;
@@ -181,5 +204,5 @@
     }
     if(n>400)clearInterval(iv);
   },2500);
-  window.vbStudioOptions={open:open,forget:forgetPat,test:testConn};
+  window.vbStudioOptions={open:open,forget:forgetPat,test:testConn,connect:doConnect};
 })();
