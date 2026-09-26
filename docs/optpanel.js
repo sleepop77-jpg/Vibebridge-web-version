@@ -1,6 +1,5 @@
-// OPTIONS PANEL v4 (new filename = cache-proof): credentials manager with Connect,
-// thin edgy buttons, plus a ALWAYS-VISIBLE floating ⚙ Options button so it can never
-// be "not visible" again (narrow screens hide the left rail; cached old JS hid the rest).
+// OPTIONS PANEL v5: Connect button MOVED to the right rail — directly beneath the
+// "GitHub credentials" card, where it belongs. Removed from the Options modal.
 (function(){
   if(window.__vbOptPanel)return;
   window.__vbOptPanel=true;
@@ -43,11 +42,16 @@
     if(patLine)patLine.textContent="stored token: "+mask(currentPat());
     var r=document.getElementById("remember");
     if(remChk)remChk.checked=r?r.checked:!!(savedVB().p||bootPat);
+    var rail=document.getElementById("vbop-railconnect");
+    if(rail){
+      var ok=!!(savedVB().p||bootPat)&&!!((document.getElementById("repo")||{}).value||savedVB().r);
+      rail.textContent=ok?"⚡ Reconnect":"⚡ Connect";
+    }
   }
   function testConn(){
     if(!testLine)return;
     var p=currentPat();
-    if(!p){testLine.textContent="no token stored — use ⚡ Connect first (401 = no valid credentials sent)";testLine.style.color="#d29922";return}
+    if(!p){testLine.textContent="no token stored — use ⚡ Connect under GitHub credentials (401 = no valid credentials sent)";testLine.style.color="#d29922";return}
     testLine.textContent="testing…";testLine.style.color="";
     var ri=document.getElementById("repo");
     var repo=(ri&&ri.value)||savedVB().r||"";
@@ -79,6 +83,20 @@
     say("connecting…");
     setTimeout(testConn,700);
     refresh();
+  }
+  function injectRailConnect(){
+    if(document.getElementById("vbop-railconnect"))return;
+    var cards=document.querySelectorAll(".sk-right .sk-card");
+    var target=null;
+    for(var i=0;i<cards.length;i++){
+      if(/github credentials/i.test(cards[i].textContent||"")){target=cards[i];break}
+    }
+    if(!target||!target.parentNode)return;
+    var b=E("button","","⚡ Connect");
+    b.id="vbop-railconnect";
+    b.style.cssText="width:100%;margin-top:-6px;margin-bottom:4px;padding:7px 10px;border-radius:2px;border:1px solid #a8801f;background:#a8801f;color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer";
+    b.onclick=function(e){e.stopPropagation();doConnect()};
+    target.parentNode.insertBefore(b,target.nextSibling);
   }
   function build(){
     modal=E("div","modal hidden");
@@ -117,9 +135,6 @@
     row.appendChild(btn("Test connection",testConn));
     row.appendChild(btn("Copy PAT",function(){var p=currentPat();if(p){navigator.clipboard.writeText(p);say("PAT copied")}else say("no PAT stored")}));
     card.appendChild(row);
-    var rowC=E("div","cardbtns");
-    rowC.appendChild(btn("⚡ Connect",doConnect));
-    card.appendChild(rowC);
     var row1=E("div","cardbtns");
     row1.appendChild(btn("Remove saved PAT",function(){forgetPat(false)}));
     row1.appendChild(btn("Remove ALL tokens",function(){if(confirm("Remove sidebar PAT, project PATs and backup PAT?"))forgetPat(true)}));
@@ -141,6 +156,7 @@
   function wire(){
     var b=document.querySelector(".sk-menu button[data-act='options']");
     if(b&&!b.dataset.optHook2){b.dataset.optHook2="1";b.onclick=function(e){e.stopPropagation();open()}}
+    injectRailConnect();
     if(!document.getElementById("vbop-fab")){
       var fab=E("button","","⚙");
       fab.id="vbop-fab";
@@ -156,7 +172,8 @@
    +"#vbop-card button{border-radius:2px!important;padding:2px 9px!important;font-size:10px!important;font-weight:600!important;line-height:1.5!important;min-height:0!important;letter-spacing:.03em}"
    +"#vbop-card .cardbtns{gap:6px!important;margin-top:6px!important;flex-wrap:wrap}"
    +"#vbop-card h3{font-size:13px!important}"
-   +"#vbop-card .chk{font-size:11.5px!important}";
+   +"#vbop-card .chk{font-size:11.5px!important}"
+   +"#vbop-railconnect:hover{filter:brightness(1.12)}";
   document.head.appendChild(st);
   bootPat=savedVB().p||"";
   rehydrate();
