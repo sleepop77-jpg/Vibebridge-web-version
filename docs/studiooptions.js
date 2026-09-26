@@ -1,16 +1,20 @@
-// STUDIO OPTIONS v1: restores "remember credentials" + adds credential management
-// (copy / remove saved PAT / remove ALL stored tokens) under the Studio left-menu
-// "Options" entry, which previously just opened the theme customizer.
+// STUDIO OPTIONS v2: credential manager + PAT persistence guard.
+// Fixes: PAT "forgetting" (empty-input overwrite of localStorage, hidden-sidebar inputs
+// never rehydrated) and adds a Test-connection button that explains 401/403 in plain words.
 (function(){
   if(window.__vbStudioOptions)return;
   window.__vbStudioOptions=true;
   function E(t,c,h){var d=document.createElement(t);if(c)d.className=c;if(h!=null)d.innerHTML=h;return d}
   function say(m){if(window.toast)toast(m);else console.log(m)}
-  var modal=null,remChk=null,patLine=null;
+  var modal=null,remChk=null,patLine=null,testLine=null;
+  var bootPat="",userCleared=false;
+  try{userCleared=sessionStorage.getItem("vb_pat_cleared")==="1"}catch(e){}
   function savedVB(){try{return JSON.parse(localStorage.getItem("vb")||"{}")}catch(e){return {}}}
+  function writeVB(obj){try{localStorage.setItem("vb",JSON.stringify(obj))}catch(e){}}
   function currentPat(){
     var p=(document.getElementById("pat")||{}).value||"";
     if(!p)p=savedVB().p||"";
+    if(!p)p=bootPat;
     return p;
   }
   function mask(p){
@@ -19,11 +23,22 @@
     if(p.length<=10)return "••••••";
     return p.slice(0,6)+"…"+p.slice(-4);
   }
+  function rehydrate(){
+    var s=savedVB();
+    var pi=document.getElementById("pat"),ri=document.getElementById("repo"),bi=document.getElementById("branch");
+    if(!userCleared){
+      if((s.p||bootPat)&&pi&&!pi.value)pi.value=s.p||bootPat;
+    }
+    if(s.r&&ri&&!ri.value)ri.value=s.r;
+    if(s.b&&bi&&!bi.value)bi.value=s.b;
+  }
   function forgetPat(all){
+    userCleared=true;bootPat="";
+    try{sessionStorage.setItem("vb_pat_cleared","1")}catch(e){}
     try{
-      var vb=JSON.parse(localStorage.getItem("vb")||"{}");
+      var vb=savedVB();
       delete vb.p;
-      localStorage.setItem("vb",JSON.stringify(vb));
+      writeVB(vb);
     }catch(e){}
     var pi=document.getElementById("pat");
     if(pi)pi.value="";
@@ -49,12 +64,35 @@
   function refresh(){
     if(patLine)patLine.textContent="stored token: "+mask(currentPat());
     var r=document.getElementById("remember");
-    if(remChk)remChk.checked=r?r.checked:!!savedVB().p;
+    if(remChk)remChk.checked=r?r.checked:!!(savedVB().p||bootPat);
+  }
+  function testConn(){
+    if(!testLine)return;
+    var p=currentPat();
+    if(!p){testLine.textContent="no token stored — connect first (401 means exactly this: GitHub got no valid credentials)";testLine.style.color="#d29922";return}
+    testLine.textContent="testing…";testLine.style.color="";
+    var ri=document.getElementById("repo");
+    var repo=(ri&&ri.value)||savedVB().r||"";
+    var parts=String(repo).split("/");
+    var target=parts.length===2?("/repos/"+parts[0]+"/"+parts[1]):"/user";
+    var old=document.getElementById("pat");
+    if(old&&!old.value)old.value=p;
+    window.api("GET",target).then(function(res){
+      testLine.textContent="OK ✔ authenticated as "+(res.owner?res.owner.login:res.login)+" — token is valid";
+      testLine.style.color="#3fb950";
+    }).catch(function(e){
+      var code=e&&e.code;
+      if(code===401)testLine.textContent="HTTP 401 = Bad credentials: token is missing, malformed, expired or revoked. Generate a new PAT and reconnect.";
+      else if(code===403)testLine.textContent="HTTP 403 = token works but is NOT allowed here: missing repo scope / fine-grained repo access / org SSO / rate limit.";
+      else if(code===404)testLine.textContent="HTTP 404 = reachable but repo not visible to this token (private repo without scope, or typo).";
+      else testLine.textContent="failed: "+(e&&e.message?e.message:e);
+      testLine.style.color="#f85149";
+    });
   }
   function build(){
     modal=E("div","modal hidden");
     var card=E("div","modalcard");
-    card.style.maxWidth="480px";
+    card.style.maxWidth="500px";
     card.appendChild(E("h3","","Options & credentials"));
     var l=E("label","chk");
     remChk=document.createElement("input");
@@ -68,9 +106,15 @@
         if(confirm("Stop remembering and delete saved credentials now?"))forgetPat(true);
       }else{
         var pi=document.getElementById("pat"),ri=document.getElementById("repo"),bi=document.getElementById("branch");
-        if(pi&&ri&&pi.value&&ri.value){
-          try{localStorage.setItem("vb",JSON.stringify({p:pi.value,r:ri.value,b:(bi&&bi.value)||"main"}))}catch(e){}
-        }
+        var existing=savedVB();
+        var p=(pi&&pi.value)||existing.p||bootPat||"";
+        if(p&&ri&&ri.value){
+          writeVB({p:p,r:ri.value,b:(bi&&bi.value)||existing.b||"main"});
+          userCleared=false;bootPat=p;
+          try{sessionStorage.removeItem("vb_pat_cleared")}catch(e){}
+          if(window.setConn)setConn(p,ri.value,(bi&&bi.value)||"main");
+          say("credentials will be remembered");
+        }else say("connect once first, then they will be remembered");
       }
       refresh();
     };
@@ -78,17 +122,23 @@
     patLine=E("div","small dim","");
     patLine.style.margin="8px 0";
     card.appendChild(patLine);
+    testLine=E("div","small dim","");
+    testLine.style.margin="0 0 8px";
+    card.appendChild(testLine);
     function btn(t,fn){var b=E("button","mini",t);b.onclick=fn;return b}
     var row=E("div","cardbtns");
+    row.appendChild(btn("Test connection",testConn));
     row.appendChild(btn("Copy PAT",function(){
       var p=currentPat();
       if(p){navigator.clipboard.writeText(p);say("PAT copied")}else say("no PAT stored");
     }));
-    row.appendChild(btn("Remove saved PAT",function(){forgetPat(false)}));
-    row.appendChild(btn("Remove ALL tokens",function(){
+    card.appendChild(row);
+    var row1=E("div","cardbtns");
+    row1.appendChild(btn("Remove saved PAT",function(){forgetPat(false)}));
+    row1.appendChild(btn("Remove ALL tokens",function(){
       if(confirm("Remove sidebar PAT, project PATs and backup PAT?"))forgetPat(true);
     }));
-    card.appendChild(row);
+    card.appendChild(row1);
     var row2=E("div","cardbtns");
     row2.appendChild(btn("Customize theme…",function(){
       modal.classList.add("hidden");
@@ -104,6 +154,7 @@
   }
   function open(){
     if(!modal)build();
+    rehydrate();
     modal.classList.remove("hidden");
     refresh();
   }
@@ -114,11 +165,21 @@
       b.onclick=function(e){e.stopPropagation();open()};
     }
   }
+  bootPat=savedVB().p||"";
+  rehydrate();
   var n=0;
   var iv=setInterval(function(){
     n++;
     wireOptionsButton();
-    if(n>200)clearInterval(iv);
-  },500);
-  window.vbStudioOptions={open:open,forget:forgetPat};
+    var s=savedVB();
+    if(s.p){userCleared=false;bootPat=s.p}
+    if(!userCleared){
+      rehydrate();
+      if(!s.p&&bootPat){
+        writeVB({p:bootPat,r:s.r||((document.getElementById("repo")||{}).value)||"",b:s.b||"main"});
+      }
+    }
+    if(n>400)clearInterval(iv);
+  },2500);
+  window.vbStudioOptions={open:open,forget:forgetPat,test:testConn};
 })();
