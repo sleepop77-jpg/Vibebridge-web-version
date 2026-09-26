@@ -128,7 +128,7 @@
   t.onclick=function(){
    Array.prototype.forEach.call(center.querySelectorAll(".sk-tab"),function(x){x.classList.remove("on")});
    t.classList.add("on");
-   if(t.getAttribute("data-tab")==="pc")say("local projects land in phase 2 — github mode stays active");
+    /* mode switching is handled by studioedit.js — no stale toast */
   };
  });
 })();

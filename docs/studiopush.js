@@ -1,6 +1,4 @@
 // STUDIO PUSH v1 (Phase 3): diff-based push engine for "this pc" VFS projects.
-// Bind a repo per project, push only added/changed/deleted files, keep a manifest,
-// record push history, poll CI, and export the whole project as a ZIP.
 (function(){
   if(window.__vbStudioPush)return;
   window.__vbStudioPush=true;
@@ -156,7 +154,7 @@
       var blob=zipStore(entries);
       var a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
-      a.download=(document.querySelector(".sk-search")?"project":"project")+"-"+Date.now()+".zip";
+      a.download="project-"+Date.now()+".zip";
       a.click();
       say("exported "+entries.length+" files as zip");
     });

@@ -43,7 +43,7 @@
    +".sk-tree{flex:1;overflow-y:auto;min-height:100px}"
    +".sk-tree-toolbar{display:flex;gap:4px;padding:0 4px 8px;flex-wrap:wrap}"
    +".sk-tree-toolbar button{flex:1;padding:5px;font-size:11px;border:1px solid var(--sk-line);border-radius:5px;background:var(--sk-card);color:var(--sk-dim);cursor:pointer;font-weight:600;white-space:nowrap}"
-   +".sk-tree-toolbar button:hover{background:var(--sk-acc);color:#fff;border-color:var(--sk-acc)}
+   +".sk-tree-toolbar button:hover{background:var(--sk-acc);color:#fff;border-color:var(--sk-acc)}"
    +".sk-tree-toolbar button:disabled{opacity:.4;cursor:default}"
    +".sk-tree-item{display:flex;gap:6px;align-items:center;padding:5px 8px;border-radius:5px;font-size:12px;color:var(--sk-dim);cursor:pointer;user-select:none}"
    +".sk-tree-item:hover{background:rgba(168,128,31,.12)}"
@@ -110,7 +110,7 @@
       rf.onclick=function(){fetchTree(true).then(function(){renderTree()},function(e){say(e.message)})};
       var ps=E("button","","Push staged ("+stagedCount()+")");
       ps.disabled=!stagedCount();
-      ps.onclick=pushStaged;
+      ps.onclick=function(){if(window.vbStudioPush)window.vbStudioPush.pushStagedGitHub?window.vbStudioPush.pushStagedGitHub():window.vbStudioPush.push();else say("push engine not loaded")};
       var im=E("button","","Import → PC");
       im.onclick=importRepo;
       tb.appendChild(rf);tb.appendChild(ps);tb.appendChild(im);
@@ -228,7 +228,7 @@
             if(isFolder)files.forEach(function(o){if(o.path.indexOf(f.path+"/")===0)toDelete.push(o.path)});
             Promise.all(toDelete.map(function(p){return window.vfs.deleteFile(state.projectId,p)})).then(function(){
               state.openTabs=state.openTabs.filter(function(t){return toDelete.indexOf(t.path)===-1});
-              if(toDelete.indexOf(state.activeTab.path) !== -1 && state.activeTab.src==="local")state.activeTab="__chat__";
+              if(state.activeTab&&state.activeTab.src==="local"&&toDelete.indexOf(state.activeTab.path)!==-1)state.activeTab="__chat__";
               save();renderAll();
             });
           };
@@ -311,21 +311,6 @@
       pane.appendChild(E("div","sk-tree-empty","cannot load: "+e.message));
     });
   }
-  function pushStaged(){
-    var c=connInfo();
-    if(!c.ok)return say("connect first");
-    var o=stagedAll();var k=repoKey();
-    var paths=Object.keys(o[k]||{});
-    if(!paths.length)return say("nothing staged");
-    var ops=paths.map(function(p){return {kind:"FILE",path:p,content:o[k][p]}});
-    say("pushing "+ops.length+" staged file(s)…");
-    window.commitOps(ops,"studio: push "+ops.length+" staged file(s)").then(function(cm){
-      o[k]={};saveStaged(o);
-      ghCache.ts=0;
-      say("pushed "+String(cm.sha).slice(0,7));
-      renderAll();
-    }).catch(function(e){say("push failed: "+e.message)});
-  }
   function importRepo(){
     var c=connInfo();
     if(!c.ok)return say("connect first");
@@ -335,7 +320,7 @@
       say("importing "+texts.length+" files into this PC…");
       var done=0;
       function next(){
-        if(done>=texts.length){say("imported "+done+" files into this PC project");return}
+        if(done>=texts.length){say("imported "+done+" files into this PC project");renderTree();return}
         var e=texts[done++];
         window.api("GET","/repos/"+c.owner+"/"+c.name+"/contents/"+e.path.split("/").map(encodeURIComponent).join("/")+"?ref="+c.branch)
           .then(function(m){return window.vfs.ensureParents(state.projectId,e.path).then(function(){return window.vfs.writeFile(state.projectId,e.path,dec64(m.content))})})
@@ -400,5 +385,5 @@
     },200);
   }
   init();
-  window.vbStudioEdit={openFile:openFile,renderAll:renderAll,refreshTree:function(){fetchTree(true).then(renderTree)},pushStaged:pushStaged,getState:function(){return state}};
+  window.vbStudioEdit={openFile:openFile,renderAll:renderAll,refreshTree:function(){fetchTree(true).then(renderTree)},getState:function(){return state}};
 })();
