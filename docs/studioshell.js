@@ -93,6 +93,7 @@
   +'<div class="sk-card"><h4>How to use</h4><div class="sk-steps"><b>1.</b> Connect your GitHub repo.<br><b>2.</b> Ask your AI for a VibeBridge payload.<br><b>3.</b> Paste it in the chat.<br><b>4.</b> Review the checklist and push.</div></div>';
  shell.appendChild(left);shell.appendChild(center);shell.appendChild(right);
  document.body.appendChild(shell);
+ document.body.classList.add("vb-studio-ready");
  var main=document.getElementById("main");
  var skbody=document.getElementById("sk-body");
  if(main&&skbody)skbody.appendChild(main);
