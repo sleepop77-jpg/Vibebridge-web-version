@@ -1,5 +1,4 @@
-// STUDIO EDIT v2: mode-aware tree. "github" tab browses the CONNECTED REPO's real files;
-// "this pc" tab browses the local VFS project. GitHub edits stage locally, then push as one commit.
+// STUDIO EDIT v3: mode-aware tree + GitHub delete (with warning) + histdel button.
 (function(){
   if(window.__vbStudioEdit)return;
   window.__vbStudioEdit=true;
@@ -110,10 +109,12 @@
       rf.onclick=function(){fetchTree(true).then(function(){renderTree()},function(e){say(e.message)})};
       var ps=E("button","","Push staged ("+stagedCount()+")");
       ps.disabled=!stagedCount();
-      ps.onclick=function(){if(window.vbStudioPush)window.vbStudioPush.pushStagedGitHub?window.vbStudioPush.pushStagedGitHub():window.vbStudioPush.push();else say("push engine not loaded")};
+      ps.onclick=function(){if(window.vbStudioPush)window.vbStudioPush.push();else say("push engine not loaded")};
       var im=E("button","","Import → PC");
       im.onclick=importRepo;
-      tb.appendChild(rf);tb.appendChild(ps);tb.appendChild(im);
+      var hd=E("button","","histdel");
+      hd.onclick=function(){if(window.vbHistDel)window.vbHistDel.open();else say("histdel not loaded")};
+      tb.appendChild(rf);tb.appendChild(ps);tb.appendChild(im);tb.appendChild(hd);
       return;
     }
     var nf=E("button","","+ File");
@@ -144,7 +145,7 @@
     treeEl.innerHTML="";
     if(state.mode==="github"){
       var c=connInfo();
-      if(!c.ok){treeEl.appendChild(E("div","sk-tree-empty","Connect a repo first (sidebar Connect or the green badge). GitHub files will appear here."));return}
+      if(!c.ok){treeEl.appendChild(E("div","sk-tree-empty","Connect a repo first (⚡ Connect under GitHub credentials)."));return}
       treeEl.appendChild(E("div","sk-tree-empty","loading "+c.repo+" @ "+c.branch+"…"));
       fetchTree(false).then(function(entries){
         treeEl.innerHTML="";
@@ -179,6 +180,21 @@
             item.appendChild(ico);
             item.appendChild(E("span","name",nm));
             if(!isF&&stagedHas(node.path))item.appendChild(E("span","dot","•"));
+            var del=E("span","del","✕");
+            del.title=isF?"Delete folder from GitHub":"Delete from GitHub";
+            del.onclick=function(e){
+              e.stopPropagation();
+              if(isF){
+                var paths=[];
+                entries.forEach(function(en){if(en.path.indexOf(node.path+"/")===0)paths.push(en.path)});
+                if(window.vbHistDel)window.vbHistDel.delMany(node.path,paths);
+                else say("histdel not loaded");
+              }else{
+                if(window.vbHistDel)window.vbHistDel.del(node.path);
+                else say("histdel not loaded");
+              }
+            };
+            item.appendChild(del);
             item.onclick=function(){
               if(isF){state.collapsed[node.path]=!state.collapsed[node.path];save();renderTree()}
               else openFile("github",node.path);
@@ -385,5 +401,5 @@
     },200);
   }
   init();
-  window.vbStudioEdit={openFile:openFile,renderAll:renderAll,refreshTree:function(){fetchTree(true).then(renderTree)},getState:function(){return state}};
+  window.vbStudioEdit={openFile:openFile,renderAll:renderAll,refreshTree:function(){ghCache.ts=0;fetchTree(true).then(renderTree)},getState:function(){return state}};
 })();
