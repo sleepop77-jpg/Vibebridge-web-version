@@ -13,7 +13,7 @@
   +":root{--sk-bg:#f1ead2;--sk-side:#e6ddbd;--sk-card:#faf6e8;--sk-line:#c8bb8e;--sk-ink:#33291a;--sk-dim:#6d6142;--sk-acc:#a8801f;--sk-olive:#6f7d33}"
   +"body{background:var(--sk-bg)!important;padding-top:0!important;overflow:hidden!important}"
   +"body::before{display:none!important}"
-  +"#starA,#starB,#galaxy,#vbstars,.shot,#vbdock,#vbinbox-pill,#vbinbox,#sb,#empty,#vtabnav,#vactivity{display:none!important}"
+   +"#sb,#empty,#vtabnav,#vactivity{display:none!important}"
   +"#vb-studio-shell{display:grid;grid-template-columns:250px minmax(0,1fr) 320px;height:100vh;width:100vw}"
   +".sk-left{background:var(--sk-side);border-right:1px solid var(--sk-line);display:flex;flex-direction:column;padding:14px 10px;overflow-y:auto}"
   +".sk-search{background:var(--sk-card);border:1px solid var(--sk-line);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--sk-dim);margin-bottom:14px}"
