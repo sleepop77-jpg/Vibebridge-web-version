@@ -1,0 +1,5 @@
+hi -> Hello! I am the VibeBridge Rule Engine.
+hello -> Hi there! How can I help you today?
+help -> I follow rules defined in rules.txt. Ask your AI to add more rules!
+pizza -> 🍕 Pizza time!
+bye -> Goodbye! Have a great day.

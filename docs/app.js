@@ -1,133 +1,171 @@
-// VibeBridge If-Then Engine
+// VibeBridge Rule Engine
 const $ = s => document.querySelector(s);
-const output = $('#output');
-const input = $('#input');
+const $$ = s => document.querySelectorAll(s);
 
 // State
-let rules = []; // Array of { condition: regex/string, action: string/payload }
-let pendingOps = null;
+let rules = []; // Array of { trigger: string, response: string }
 
-// Core Loop
-input.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter') {
-        const cmd = input.value.trim();
-        if (!cmd) return;
-        
-        print(cmd, 'user');
-        input.value = '';
-        
-        await processInput(cmd);
+// DOM
+const flow = $('#flow');
+const input = $('#input');
+const sendBtn = $('#send');
+const btnConnect = $('#btn-connect');
+const statusEl = $('#status');
+const ruleListEl = $('#rule-list');
+const payloadInput = $('#payload-input');
+const btnParse = $('#btn-parse');
+
+// Init
+function init() {
+    const saved = JSON.parse(localStorage.getItem('vb_rules') || 'null');
+    if (saved) {
+        $('#pat').value = saved.pat;
+        $('#repo').value = saved.repo;
     }
-});
 
-function print(text, type = 'system') {
-    const div = document.createElement('div');
-    div.className = `line ${type}`;
-    div.textContent = text;
-    output.appendChild(div);
-    output.scrollTop = output.scrollHeight;
+    btnConnect.onclick = handleConnect;
+    sendBtn.onclick = handleSend;
+    btnParse.onclick = handlePayload;
+    
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    });
+
+    $('#btn-wipe').onclick = () => {
+        localStorage.clear();
+        location.reload();
+    };
 }
 
-async function processInput(text) {
-    // 1. Check for System Commands
-    if (text === 'help') {
-        print("Commands:");
-        print("  help          - Show this message");
-        print("  rules         - List loaded If-Then rules");
-        print("  clear         - Clear terminal");
-        print("  connect       - Connect to GitHub");
-        print("  push          - Push staged changes");
-        print("  [payload]     - Paste a VibeBridge payload to load rules");
+function addMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.textContent = text;
+    flow.appendChild(div);
+    flow.scrollTop = flow.scrollHeight;
+}
+
+async function handleConnect() {
+    const pat = $('#pat').value.trim();
+    const repo = $('#repo').value.trim();
+    if (!pat || !repo) return alert("Fill in PAT and Repo");
+
+    try {
+        setConn(pat, repo, "main");
+        const login = await validate();
+        localStorage.setItem('vb_rules', JSON.stringify({ pat, repo }));
+        statusEl.textContent = `Connected as ${login}`;
+        statusEl.style.color = "var(--sk-olive)";
+        addMessage('ai', `Connected. Loading rules.txt...`);
+        await loadRules();
+    } catch (e) {
+        statusEl.textContent = "Error: " + e.message;
+        statusEl.style.color = "var(--sk-red)";
+    }
+}
+
+async function loadRules() {
+    const content = await getFile("docs/rules.txt");
+    if (!content) {
+        addMessage('ai', "No rules.txt found in repo. Create one or paste a payload to make one.");
+        rules = [];
+        renderRules();
         return;
     }
 
-    if (text === 'clear') {
-        output.innerHTML = '';
-        return;
-    }
-
-    if (text === 'rules') {
-        if (rules.length === 0) print("No rules loaded.");
-        else rules.forEach((r, i) => print(`[${i}] IF "${r.condition}" THEN "${r.action.slice(0, 50)}..."`));
-        return;
-    }
-
-    if (text === 'connect') {
-        const pat = prompt("GitHub PAT:");
-        const repo = prompt("Repo (owner/name):");
-        if (pat && repo) {
-            setConn(pat, repo, "main");
-            try {
-                const user = await validate();
-                print(`Connected as ${user}`, 'system');
-            } catch (e) {
-                print(`Connection failed: ${e.message}`, 'error');
-            }
+    // Parse rules.txt format: "trigger -> response"
+    rules = [];
+    const lines = content.split('\n');
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const parts = trimmed.split('->');
+        if (parts.length === 2) {
+            rules.push({
+                trigger: parts[0].trim().toLowerCase(),
+                response: parts[1].trim()
+            });
         }
+    });
+
+    addMessage('ai', `Loaded ${rules.length} rules.`);
+    renderRules();
+}
+
+function renderRules() {
+    ruleListEl.innerHTML = '';
+    if (rules.length === 0) {
+        ruleListEl.innerHTML = '<div class="sk-empty">No rules loaded.</div>';
         return;
     }
+    rules.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'sk-rule-item';
+        div.innerHTML = `<b>${r.trigger}</b> → ${r.response}`;
+        ruleListEl.appendChild(div);
+    });
+}
 
-    if (text === 'push') {
-        if (!pendingOps) {
-            print("Nothing to push.", 'error');
-            return;
-        }
-        print("Pushing...", 'system');
-        try {
-            const c = await commitOps(pendingOps, "feat: update rules");
-            print(`Pushed: ${c.sha.slice(0, 7)}`, 'system');
-            pendingOps = null;
-        } catch (e) {
-            print(`Push failed: ${e.message}`, 'error');
-        }
-        return;
-    }
+function handleSend() {
+    const text = input.value.trim();
+    if (!text) return;
 
-    // 2. Check for Payload (Loading Rules)
-    if (text.includes("===VIBEBRIDGE===")) {
-        const ops = parsePayload(text);
-        if (ops.length > 0) {
-            pendingOps = ops;
-            print(`Parsed ${ops.length} file operations. Ready to push.`, 'system');
-            
-            // Special handling: If the payload contains a 'rules.json' or similar, parse it
-            const ruleFile = ops.find(o => o.path.includes('rules'));
-            if (ruleFile) {
-                try {
-                    const newRules = JSON.parse(ruleFile.content);
-                    rules = rules.concat(newRules);
-                    print(`Loaded ${newRules.length} new If-Then rules. Total: ${rules.length}`, 'rule-match');
-                } catch (e) {
-                    print("Payload contained rules file but it was invalid JSON.", 'error');
-                }
-            }
-        } else {
-            print("No operations found in payload.", 'error');
-        }
-        return;
-    }
+    addMessage('user', text);
+    input.value = '';
 
-    // 3. Check Against If-Then Rules
+    // Check rules
+    const lowerText = text.toLowerCase();
     let matched = false;
+
     for (const rule of rules) {
-        // Simple string includes check for now (can be upgraded to Regex)
-        if (text.toLowerCase().includes(rule.condition.toLowerCase())) {
-            print(`Match found: ${rule.condition}`, 'rule-match');
-            print(`Executing: ${rule.action}`, 'payload');
-            
-            // If the action is a payload, execute it recursively or just display it
-            if (rule.action.includes("===VIBEBRIDGE===")) {
-                print("(Action is a payload. In a full version, this would auto-execute.)", 'system');
-            }
+        if (lowerText.includes(rule.trigger)) {
+            setTimeout(() => {
+                addMessage('ai', rule.response);
+            }, 300);
             matched = true;
             break; // Stop at first match
         }
     }
 
     if (!matched) {
-        print("No matching rule found.", 'error');
+        setTimeout(() => {
+            addMessage('ai', "I don't have a rule for that. Ask your AI to add one!");
+        }, 300);
     }
 }
 
-// Focus input on click anywhere
-document.addEventListener('click', () => input.focus());
+function handlePayload() {
+    const text = payloadInput.value.trim();
+    if (!text.includes("===VIBEBRIDGE===")) {
+        alert("Invalid payload format");
+        return;
+    }
+
+    const ops = parsePayload(text);
+    const ruleOp = ops.find(o => o.path.includes('rules.txt'));
+    
+    if (ruleOp) {
+        if (!PAT || !OWNER) {
+            alert("Connect to GitHub first to save rules.");
+            return;
+        }
+
+        addMessage('ai', "Pushing new rules to GitHub...");
+        commitOps([{ kind: 'FILE', path: 'docs/rules.txt', content: ruleOp.content }], "feat: update rules via VibeBridge")
+            .then(() => {
+                addMessage('ai', "Rules updated on GitHub. Reloading...");
+                payloadInput.value = '';
+                setTimeout(loadRules, 1000);
+            })
+            .catch(e => {
+                addMessage('ai', "Push failed: " + e.message);
+            });
+    } else {
+        alert("Payload doesn't contain rules.txt");
+    }
+}
+
+init();

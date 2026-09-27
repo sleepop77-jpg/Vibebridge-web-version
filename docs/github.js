@@ -1,4 +1,4 @@
-// Minimal GitHub API Engine (Same as before, stripped down)
+// Minimal GitHub API Engine
 let PAT = "", OWNER = "", REPO = "", BRANCH = "main";
 
 function setConn(pat, repo, branch) {
@@ -20,7 +20,11 @@ async function api(method, path, body) {
         }, body ? { "Content-Type": "application/json" } : {}),
         body: body ? JSON.stringify(body) : undefined
     });
-    if (!r.ok) throw new Error("HTTP " + r.status);
+    if (!r.ok) {
+        const e = new Error("HTTP " + r.status);
+        e.code = r.status;
+        throw e;
+    }
     const t = await r.text();
     return t ? JSON.parse(t) : {};
 }
@@ -42,6 +46,7 @@ async function commitOps(ops, message) {
         baseTree = (await api("GET", `/repos/${OWNER}/${REPO}/git/commits/${refSha}`)).tree.sha;
     } catch (e) {
         if (e.code !== 404) throw e;
+        await api("GET", `/repos/${OWNER}/${REPO}`);
     }
 
     const entries = [];
@@ -62,6 +67,15 @@ async function commitOps(ops, message) {
     else await api("POST", `/repos/${OWNER}/${REPO}/git/refs`, { ref: `refs/heads/${BRANCH}`, sha: commit.sha });
     
     return commit;
+}
+
+async function getFile(path) {
+    try {
+        const res = await api("GET", `/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`);
+        return unb64(res.content);
+    } catch (e) {
+        return null;
+    }
 }
 
 // Parser for VibeBridge payloads

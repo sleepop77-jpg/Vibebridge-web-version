@@ -3,28 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VibeBridge // Terminal</title>
+    <title>VibeBridge // Rule Engine</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="terminal">
-        <header class="term-header">
-            <span class="dot red"></span>
-            <span class="dot yellow"></span>
-            <span class="dot green"></span>
-            <span class="title">vibe-bridge — zsh — 80x24</span>
-        </header>
-        
-        <div class="term-body" id="output">
-            <div class="line system">VibeBridge If-Then Engine v1.0</div>
-            <div class="line system">Type 'help' for commands. Paste payloads to load rules.</div>
-            <div class="line system">----------------------------------------</div>
-        </div>
+    <div id="vb-studio-shell">
+        <!-- LEFT: Rules & Config -->
+        <aside class="sk-left">
+            <div class="sk-search">Rule Engine v1.0</div>
+            <div class="sk-card">
+                <h4>GitHub Connection</h4>
+                <input type="password" id="pat" placeholder="github_pat_...">
+                <input type="text" id="repo" placeholder="owner/repo">
+                <button class="sk-btn solid" id="btn-connect">Connect & Load Rules</button>
+                <div id="status" class="sk-status">Disconnected</div>
+            </div>
+            <div class="sk-card">
+                <h4>Active Rules</h4>
+                <div id="rule-list" class="sk-rule-list">
+                    <div class="sk-empty">No rules loaded.</div>
+                </div>
+            </div>
+            <div class="sk-menu">
+                <button id="btn-wipe" style="color:#b3402e">☢ Wipe Local Data</button>
+            </div>
+        </aside>
 
-        <div class="term-input-area">
-            <span class="prompt">user@vibebridge:~$</span>
-            <input type="text" id="input" autocomplete="off" spellcheck="false" autofocus>
-        </div>
+        <!-- CENTER: Execution Terminal -->
+        <section class="sk-center">
+            <div class="sk-tabs">
+                <div class="sk-tab on">Terminal</div>
+            </div>
+            <div class="sk-body">
+                <div id="chat-view">
+                    <div id="flow">
+                        <div class="msg ai">
+                            <div class="bubble">System ready. Waiting for rules.txt from GitHub...</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="composerwrap">
+                    <div id="composer">
+                        <textarea id="input" rows="1" placeholder="Type input to test rules..."></textarea>
+                        <div class="crow">
+                            <span class="spacer"></span>
+                            <button id="send" class="sendbtn">↑</button>
+                        </div>
+                    </div>
+                    <div class="footnote">Logic is driven by rules.txt in your repo. Paste payloads to update rules.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: Payload Injector -->
+        <aside class="sk-right">
+            <div class="sk-card">
+                <h4>Update Rules</h4>
+                <p class="sk-help">Paste a VibeBridge payload here to update your rules.txt file.</p>
+                <textarea id="payload-input" class="sk-code" placeholder="===VIBEBRIDGE=== v2&#10;===== FILE: docs/rules.txt =====&#10;hi -> hello there!&#10;bye -> goodbye!"></textarea>
+                <button class="sk-btn" id="btn-parse">Parse & Apply Payload</button>
+            </div>
+            <div class="sk-card">
+                <h4>How to use</h4>
+                <div class="sk-steps">
+                    <b>1.</b> Connect your repo.<br>
+                    <b>2.</b> Ask AI: "Add a rule: if I say 'pizza', say '🍕'".<br>
+                    <b>3.</b> Paste the payload on the right.<br>
+                    <b>4.</b> The engine reloads rules automatically.
+                </div>
+            </div>
+        </aside>
     </div>
 
     <script src="github.js"></script>
