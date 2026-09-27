@@ -1,157 +1,33 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VibeBridge</title>
-<link rel="icon" type="image/svg+xml" href="logo.svg">
-<script>try{if(localStorage.getItem("vb_theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
-<link rel="stylesheet" href="style.css?v=r10">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeBridge // Terminal</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<aside id="sb">
-  <div class="sbhead"><img src="logo.svg" alt="" style="height:22px;width:auto;border-radius:5px"><canvas id="sbbunny" width="28" height="36"></canvas><span>VibeBridge</span></div>
-  <button id="newchat" class="sidebtn glow">New chat</button>
-  <div class="sbsec">History</div>
-  <div id="chatlist" class="chatlist"></div>
-  <div class="sbsec">Push history</div>
-  <div id="pushlog" class="pushlog"></div>
-  <div class="sbsec">Connect</div>
-  <input id="pat" type="password" placeholder="github_pat_…">
-  <input id="repo" placeholder="owner/repo">
-  <input id="branch" placeholder="main" value="main">
-  <button id="connect" class="green full">Connect</button>
-  <div id="connstatus" class="dim small">not connected</div>
-  <label class="chk"><input type="checkbox" id="remember" checked> remember credentials</label>
-  <label class="chk"><input type="checkbox" id="strict"> strict sentinel mode</label>
-  <div class="sbfoot">
-    <div class="stats" id="stats"></div>
-    web-native VibeBridge · low orbit
-  </div>
-</aside>
-<div id="main">
-  <header>
-    <button id="sbtoggle" class="iconbtn">menu</button>
-    <div class="modelwrap">
-      <button id="modelbtn" class="modelbtn">VibeBridge · QWEN STUDIO ▾</button>
-      <div id="modelmenu" class="menu hidden">
-        <button data-m="QWEN STUDIO">QWEN STUDIO <span>bridge-tuned</span></button>
-        <button data-m="CHATGPT">CHATGPT <span>no fences</span></button>
-        <button data-m="GEMINI">GEMINI <span>small hunks</span></button>
-      </div>
-    </div>
-    <span class="spacer"></span>
-    <button id="themebtn" class="headbtn" title="Toggle light / dark">Light mode</button>
-    <button id="clearbtn" class="headbtn" title="Clear this chat">Clear</button>
-    <button id="exportbtn" class="headbtn" title="Export chat as markdown">Export</button>
-    <div id="connbadge" class="badge off">Not connected</div>
-  </header>
-  <div id="chat">
-    <div id="empty">
-      <div class="bunnywrap">
-        <div class="orbit"><i></i></div>
-        <canvas id="bunny" width="84" height="108"></canvas>
-      </div>
-      <div class="wordmark">Vibe<span>Bridge</span></div>
-      <div class="tagline">any AI chat becomes your engineering team</div>
-      <div id="tip" class="tip"></div>
-      <div id="chips"></div>
-      <div class="keystats">
-        <div class="ks"><span id="ks-chats">0</span>chats</div>
-        <div class="ks"><span id="ks-pushes">0</span>pushes</div>
-        <div class="ks"><span id="ks-ops">0</span>file ops</div>
-      </div>
-    </div>
-    <div id="flow"></div>
-  </div>
-  <div id="composerwrap">
-    <div id="composer">
-      <textarea id="input" rows="1" placeholder="Message VibeBridge…"></textarea>
-      <div class="crow">
-        <button id="paste" class="pill" title="Paste from clipboard">Paste</button>
-        <div class="tplwrap">
-          <button id="tplbtn" class="pill">Templates ▾</button>
-          <div id="tplmenu" class="menu up hidden"></div>
+    <div class="terminal">
+        <header class="term-header">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="title">vibe-bridge — zsh — 80x24</span>
+        </header>
+        
+        <div class="term-body" id="output">
+            <div class="line system">VibeBridge If-Then Engine v1.0</div>
+            <div class="line system">Type 'help' for commands. Paste payloads to load rules.</div>
+            <div class="line system">----------------------------------------</div>
         </div>
-        <span class="spacer"></span>
-        <span id="charcount" class="charcount">0</span>
-        <button id="send" class="sendbtn" disabled>↑</button>
-      </div>
+
+        <div class="term-input-area">
+            <span class="prompt">user@vibebridge:~$</span>
+            <input type="text" id="input" autocomplete="off" spellcheck="false" autofocus>
+        </div>
     </div>
-    <div class="footnote">vb-web r10 · tokens stay in this tab · payloads parse locally · <a href="#" id="kbshort">keyboard shortcuts</a></div>
-  </div>
-</div>
-<div id="toast" class="toast hidden"></div>
-<div id="kbmodal" class="modal hidden">
-  <div class="modalcard">
-    <h3>Keyboard shortcuts</h3>
-    <div class="krow"><kbd>Enter</kbd> send message</div>
-    <div class="krow"><kbd>Shift+Enter</kbd> new line</div>
-    <div class="krow"><kbd>Ctrl+K</kbd> new chat</div>
-    <div class="krow"><kbd>Ctrl+Shift+V</kbd> paste from clipboard</div>
-    <div class="krow"><kbd>Ctrl+E</kbd> export chat</div>
-    <div class="krow"><kbd>Esc</kbd> close menus and modals</div>
-    <button class="green" onclick="document.getElementById('kbmodal').classList.add('hidden')">Got it</button>
-  </div>
-</div>
-<div id="confetti"></div>
-<script src="github.js"></script>
 
-<script src="app.js"></script>
-<script src="studio.js"></script>
-<script src="zipmd.js"></script>
-<script src="imgpush.js"></script>
-<script src="attach.js"></script>
- <script src="theme.js"></script>
-
- <script src="htmlpreview.js"></script>
- <script src="devoptions.js"></script>
- <script src="onboard.js"></script>
-<script src="apimode.js"></script>
-<script src="skin.js"></script>
-<script src="stars.js"></script>
-
-<script src="svgchat.js"></script>
-<script src="ctxmenu.js"></script>
- <script src="devmode.js"></script>
-
- <script src="multirepo.js"></script>
- <script src="backupflow.js"></script>
- <script src="os.js"></script>
-
-
-
-
- 
-
- 
- 
- <script src="studioshell.js"></script>
- <script src="backdrop.js"></script>
- <script src="sbclean.js"></script>
- <script src="nodock.js"></script>
- <script src="devconsolidate.js"></script>
- <script src="developer.js"></script>
-
-
- <script src="sitepreview.js"></script>
- <script src="devmenu.js"></script>
- 
-<script src="studioloader.js"></script>
-<script src="vfs.js"></script>
-<script src="shellfix.js"></script>
-<script src="studioedit.js"></script>
-<script src="studiopush.js"></script>
-
-<script src="studiooptions.js"></script>
-<script src="optpanel.js"></script>
-
-<script src="reconn.js"></script>
-
-<script src="ghdel.js"></script>
-<script src="batchdel.js"></script>
-<script src="autoclean.js"></script>
-<script src="vbprompt.js"></script>
+    <script src="github.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
